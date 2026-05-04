@@ -103,7 +103,7 @@
     const secondButtonText = "সংরক্ষণ করুন";
     const delayBetweenClicks = 50;
     const delayBetweenPhases = 500;
-    const triggerButtonText = "কাজ শুরু করুন";
+    const triggerButtonText = "Start";
 
     // Loop settings
     const waitForDataTime = 8000; // Time to wait for data in loop (8 seconds)
@@ -262,7 +262,7 @@
         // Create master loop button
         loopButton = document.createElement('button');
         loopButton.id = 'master-loop-btn';
-        loopButton.innerText = "▶ স্টার্ট অটো লুপ";
+        loopButton.innerText = "▶ Auto Start";
         document.body.appendChild(loopButton);
 
         loopButton.addEventListener('click', () => {
@@ -272,7 +272,7 @@
                 loopButton.classList.add('running');
                 startMasterLoop(); // Start loop
             } else {
-                loopButton.innerText = "▶ স্টার্ট অটো লুপ";
+                loopButton.innerText = "▶ Auto Start";
                 loopButton.classList.remove('running');
             }
         });
