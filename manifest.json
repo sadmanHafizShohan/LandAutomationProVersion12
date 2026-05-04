@@ -1,0 +1,48 @@
+{
+    "manifest_version": 3,
+    "name": "Land Automation software shortcuts",
+    "version": "11",
+    "description": "Using shortcuts + Automatic save Holding and Khatian number with comment in Data Sheet + Log Entry Automation ",
+    "permissions": [
+        "storage",
+        "tabs",
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://log.ldd4ig.org/*",
+                "https://undp.ldtax.gov.bd/*",
+                "https://*.land.gov.bd/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_end"
+        },
+        {
+            "matches": [
+                "https://log.ldd4ig.org/*",
+                "https://undp.ldtax.gov.bd/*",
+                "https://*.land.gov.bd/*"
+            ],
+            "js": [
+                "main_world.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN"
+        }
+    ],
+    "action": {
+        "default_title": "Smart Control",
+        "default_popup": "index.html"
+    }
+}
