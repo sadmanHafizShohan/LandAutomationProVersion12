@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
 function App() {
-  const [activeTab, setActiveTab] = useState('holding'); // 'holding' or 'khatian'
-  const [subscription, setSubscription] = useState('Free');
+  const [activeTab, setActiveTab] = useState("holding"); // 'holding' or 'khatian'
+  const [subscription, setSubscription] = useState("Free");
   const [isPremiumLocked, setIsPremiumLocked] = useState(false);
 
   const [fileName, setFileName] = useState("No file chosen · CSV or TXT");
@@ -26,48 +26,58 @@ function App() {
   const failedLogRef = useRef(null);
 
   useEffect(() => {
-    chrome.storage.local.get(['subscription'], (res) => {
-      const sub = res.subscription || 'Free';
+    chrome.storage.local.get(["subscription"], (res) => {
+      const sub = res.subscription || "Free";
       setSubscription(sub);
-      if (sub.toLowerCase() !== 'premium') {
+      if (sub.toLowerCase() !== "premium") {
         setIsPremiumLocked(true);
       }
     });
 
     // Load saved automation state from session storage
-    chrome.storage.session.get(['aep_currentIndex', 'aep_totalLines', 'aep_sCount', 'aep_fCount', 'aep_isPaused', 'aep_failedRows'], (res) => {
-      if (res.aep_totalLines && res.aep_totalLines > 0) {
-        // Automation was running or paused - restore state
-        const currentIndex = res.aep_currentIndex || 0;
-        const totalLines = res.aep_totalLines || 0;
-        const sCount = res.aep_sCount || 0;
-        const fCount = res.aep_fCount || 0;
-        const isPaused = res.aep_isPaused || false;
-        const failedRows = res.aep_failedRows || [];
-        
-        setTotal(totalLines);
-        setDone(currentIndex);
-        setSCount(sCount);
-        setFCount(fCount);
-        
-        // Restore failed log
-        if (failedRows.length > 0) {
-          const failedLogText = failedRows.join("\n");
-          setFailedLog(failedLogText);
+    chrome.storage.session.get(
+      [
+        "aep_currentIndex",
+        "aep_totalLines",
+        "aep_sCount",
+        "aep_fCount",
+        "aep_isPaused",
+        "aep_failedRows",
+      ],
+      (res) => {
+        if (res.aep_totalLines && res.aep_totalLines > 0) {
+          // Automation was running or paused - restore state
+          const currentIndex = res.aep_currentIndex || 0;
+          const totalLines = res.aep_totalLines || 0;
+          const sCount = res.aep_sCount || 0;
+          const fCount = res.aep_fCount || 0;
+          const isPaused = res.aep_isPaused || false;
+          const failedRows = res.aep_failedRows || [];
+
+          setTotal(totalLines);
+          setDone(currentIndex);
+          setSCount(sCount);
+          setFCount(fCount);
+
+          // Restore failed log
+          if (failedRows.length > 0) {
+            const failedLogText = failedRows.join("\n");
+            setFailedLog(failedLogText);
+          }
+
+          if (isPaused) {
+            setStatusMsg("Paused");
+            setStatusState("paused");
+          } else if (currentIndex >= totalLines) {
+            setStatusMsg("Automation Complete! ✅");
+            setStatusState("finished");
+          } else {
+            setStatusMsg("Running automation...");
+            setStatusState("active");
+          }
         }
-        
-        if (isPaused) {
-          setStatusMsg("Paused");
-          setStatusState("paused");
-        } else if (currentIndex >= totalLines) {
-          setStatusMsg("Automation Complete! ✅");
-          setStatusState("finished");
-        } else {
-          setStatusMsg("Running automation...");
-          setStatusState("active");
-        }
-      }
-    });
+      },
+    );
 
     const handleMessage = (msg) => {
       if (msg.done !== undefined) {
@@ -131,32 +141,42 @@ function App() {
         console.error("[AEP] No active tab found");
         return;
       }
-      
+
       const tabId = tabs[0].id;
       const tabUrl = tabs[0].url;
-      
+
       // Check if the tab is on a supported domain
-      if (!tabUrl || (!tabUrl.includes('log.ldd4ig.org') && !tabUrl.includes('land.gov.bd') && !tabUrl.includes('undp.ldtax.gov.bd'))) {
-        setStatusMsg("❌ Not on supported site! Open log.ldd4ig.org");
+      if (!tabUrl || !tabUrl.includes("log.ldd4ig.org")) {
+        setStatusMsg("❌ Not on supported site! Open https://log.ldd4ig.org/");
         setStatusState("error");
         console.warn("[AEP] Tab URL not supported:", tabUrl);
         return;
       }
-      
-      chrome.tabs.sendMessage(tabId, { action, data, delay: delayParam }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("[AEP] Message send error:", chrome.runtime.lastError);
-          setStatusMsg("❌ Content script not loaded. Refresh page!");
-          setStatusState("error");
-          return;
-        }
-        
-        if (response && response.success && action === "start") {
-          console.log("[AEP] Message sent successfully. Lines:", response.linesReceived);
-        } else if (response && response.success) {
-          console.log("[AEP]", action, "command acknowledged");
-        }
-      });
+
+      chrome.tabs.sendMessage(
+        tabId,
+        { action, data, delay: delayParam },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "[AEP] Message send error:",
+              chrome.runtime.lastError,
+            );
+            setStatusMsg("❌ Content script not loaded. Refresh page!");
+            setStatusState("error");
+            return;
+          }
+
+          if (response && response.success && action === "start") {
+            console.log(
+              "[AEP] Message sent successfully. Lines:",
+              response.linesReceived,
+            );
+          } else if (response && response.success) {
+            console.log("[AEP]", action, "command acknowledged");
+          }
+        },
+      );
     });
   };
 
@@ -168,7 +188,7 @@ function App() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const lines = e.target.result.split("\n").filter(l => l.trim());
+      const lines = e.target.result.split("\n").filter((l) => l.trim());
       setTotal(lines.length);
       setDone(0);
 
@@ -181,9 +201,15 @@ function App() {
 
       setStatusMsg("Running automation...");
       setStatusState("active");
-      
+
       // Clear previous session state
-      chrome.storage.session.remove(['aep_currentIndex', 'aep_totalLines', 'aep_sCount', 'aep_fCount', 'aep_isPaused']);
+      chrome.storage.session.remove([
+        "aep_currentIndex",
+        "aep_totalLines",
+        "aep_sCount",
+        "aep_fCount",
+        "aep_isPaused",
+      ]);
 
       sendMessage("start", lines, delay);
     };
@@ -213,22 +239,31 @@ function App() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     // Clear failed log from popup and storage after download
     setFailedLog("");
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs.length > 0) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "clearFailedRows" }, () => {
-          // Ignore errors if content script not available
-        });
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { action: "clearFailedRows" },
+          () => {
+            // Ignore errors if content script not available
+          },
+        );
       }
     });
   };
 
   const handleReset = () => {
     // Confirm before reset
-    if (!window.confirm("Are you sure? This will clear all data and reset everything.")) return;
-    
+    if (
+      !window.confirm(
+        "Are you sure? This will clear all data and reset everything.",
+      )
+    )
+      return;
+
     // Reset UI state
     setFileName("No file chosen · CSV or TXT");
     setFile(null);
@@ -243,16 +278,20 @@ function App() {
     setSCount(0);
     setFCount(0);
     setFailedLog("");
-    
+
     // Clear session storage
     chrome.storage.session.clear();
-    
+
     // Tell content script to reset
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs.length > 0) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "resetAutomation" }, () => {
-          // Ignore errors if content script not available
-        });
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { action: "resetAutomation" },
+          () => {
+            // Ignore errors if content script not available
+          },
+        );
       }
     });
   };
@@ -260,16 +299,40 @@ function App() {
   return (
     <>
       {isPremiumLocked && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(8, 13, 23, 0.95)', backdropFilter: 'blur(6px)',
-          display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-          color: '#fff', fontFamily: "'Inter', sans-serif"
-        }}>
-          <h2 style={{ color: '#ef4444', marginBottom: '10px', fontWeight: 700, letterSpacing: '0.5px' }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(8, 13, 23, 0.95)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            color: "#fff",
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <h2
+            style={{
+              color: "#ef4444",
+              marginBottom: "10px",
+              fontWeight: 700,
+              letterSpacing: "0.5px",
+            }}
+          >
             Premium Feature
           </h2>
-          <p style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', maxWidth: '250px', lineHeight: 1.5 }}>
+          <p
+            style={{
+              fontSize: "13px",
+              color: "#94a3b8",
+              textAlign: "center",
+              maxWidth: "250px",
+              lineHeight: 1.5,
+            }}
+          >
             To Use Auto Holding Entry Buy <br /> Premium Subscription
           </p>
         </div>
@@ -279,13 +342,19 @@ function App() {
       <div className="app-header">
         <div className="app-header-left">
           <div className="app-logo">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path d="M13 10V3L4 14H11L11 21L20 10H13Z" fill="white" />
             </svg>
           </div>
           <div className="app-title-group">
             <div className="app-title">Auto Holding Entry</div>
-            <div className="app-subtitle">Auto Holding Entry Pro - By Automation</div>
+            <div className="app-subtitle">
+              Auto Holding Entry Pro - By Automation
+            </div>
           </div>
         </div>
         <div className="app-header-right">
@@ -305,19 +374,31 @@ function App() {
       {/* ═══ TABS NAVIGATION ═══ */}
       <div className="tabs-container">
         <button
-          className={`tab-btn ${activeTab === 'holding' ? 'active' : ''}`}
-          onClick={() => setActiveTab('holding')}
+          className={`tab-btn ${activeTab === "holding" ? "active" : ""}`}
+          onClick={() => setActiveTab("holding")}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '6px' }}>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            style={{ marginRight: "6px" }}
+          >
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
           </svg>
           Auto Holding Entry
         </button>
         <button
-          className={`tab-btn ${activeTab === 'khatian' ? 'active' : ''}`}
-          onClick={() => setActiveTab('khatian')}
+          className={`tab-btn ${activeTab === "khatian" ? "active" : ""}`}
+          onClick={() => setActiveTab("khatian")}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '6px' }}>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            style={{ marginRight: "6px" }}
+          >
             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2V17zm4 0h-2V7h2V17zm4 0h-2v-4h2V17z" />
           </svg>
           Khatian Panel
@@ -325,167 +406,246 @@ function App() {
       </div>
 
       {/* ═══ MAIN CONTENT ═══ */}
-      {activeTab === 'holding' ? (
-      <div className="main-content">
-        {/* LEFT COL */}
-        <div className="col-left">
-          <div className="card">
-            <div className="card-label">Data Input</div>
+      {activeTab === "holding" ? (
+        <div className="main-content">
+          {/* LEFT COL */}
+          <div className="col-left">
+            <div className="card">
+              <div className="card-label">Data Input</div>
 
-            <div className="file-upload-wrapper">
-              <label htmlFor="fileInput" className="file-upload-label">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M14 2H6C4.9 2 4 2.9 4 4v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
-                </svg>
-                <span>Upload Data File</span>
-                <div className="file-name" style={{ color: file ? "#38bdf8" : "#94a3b8" }}>{fileName}</div>
-              </label>
-              <input type="file" id="fileInput" accept=".csv, .txt" onChange={handleFileChange} />
-            </div>
-
-            <div className="delay-row">
-              <label htmlFor="delayInput">⏱ Delay per entry</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div className="file-upload-wrapper">
+                <label htmlFor="fileInput" className="file-upload-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M14 2H6C4.9 2 4 2.9 4 4v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
+                  </svg>
+                  <span>Upload Data File</span>
+                  <div
+                    className="file-name"
+                    style={{ color: file ? "#38bdf8" : "#94a3b8" }}
+                  >
+                    {fileName}
+                  </div>
+                </label>
                 <input
-                  type="number"
-                  id="delayInput"
-                  value={delay}
-                  min="100"
-                  step="100"
-                  onChange={(e) => setDelay(Number(e.target.value))}
+                  type="file"
+                  id="fileInput"
+                  accept=".csv, .txt"
+                  onChange={handleFileChange}
                 />
-                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>ms</span>
               </div>
-            </div>
 
-            <div className="btn-group">
-              <button id="startBtn" onClick={handleStart}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                  <path d="M5 3L19 12L5 21V3Z" />
-                </svg>
-                Start Automation
-              </button>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
-                <button id="pauseBtn" style={{ fontSize: '11.5px' }} onClick={handlePause}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="white">
-                    <path d="M6 4H10V20H6V4ZM14 4H18V20H14V4Z" />
-                  </svg>
-                  Pause
-                </button>
-                <button id="resumeBtn" style={{ fontSize: '11.5px' }} onClick={handleResume}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="white">
-                    <path d="M10 8L16 12L10 16V8Z" />
-                  </svg>
-                  Resume
-                </button>
+              <div className="delay-row">
+                <label htmlFor="delayInput">⏱ Delay per entry</label>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <input
+                    type="number"
+                    id="delayInput"
+                    value={delay}
+                    min="100"
+                    step="100"
+                    onChange={(e) => setDelay(Number(e.target.value))}
+                  />
+                  <span
+                    style={{ fontSize: "10px", color: "var(--text-secondary)" }}
+                  >
+                    ms
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div className="status-bar">
-              <div className={`status-dot ${statusState}`}></div>
-              <span>{statusMsg}</span>
+              <div className="btn-group">
+                <button id="startBtn" onClick={handleStart}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                    <path d="M5 3L19 12L5 21V3Z" />
+                  </svg>
+                  Start Automation
+                </button>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "7px",
+                  }}
+                >
+                  <button
+                    id="pauseBtn"
+                    style={{ fontSize: "11.5px" }}
+                    onClick={handlePause}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="white"
+                    >
+                      <path d="M6 4H10V20H6V4ZM14 4H18V20H14V4Z" />
+                    </svg>
+                    Pause
+                  </button>
+                  <button
+                    id="resumeBtn"
+                    style={{ fontSize: "11.5px" }}
+                    onClick={handleResume}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="white"
+                    >
+                      <path d="M10 8L16 12L10 16V8Z" />
+                    </svg>
+                    Resume
+                  </button>
+                </div>
+              </div>
+
+              <div className="status-bar">
+                <div className={`status-dot ${statusState}`}></div>
+                <span>{statusMsg}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* RIGHT COL */}
-        <div className="col-right">
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div className="card-label">Live Monitor</div>
-
-            <div className="progress-card">
-              <div className="progress-header">
-                <span className="progress-label">Progress</span>
-                <span>{done} / {total}</span>
-              </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{ width: total > 0 ? `${(done / total) * 100}%` : '0%' }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="live-data">
-              <div className="live-data-row">
-                <span className="live-data-label">Holding</span>
-                <span className="live-data-value" title={liveH}>{liveH}</span>
-              </div>
-              <div className="live-data-row">
-                <span className="live-data-label">Khatian</span>
-                <span className="live-data-value" title={liveK}>{liveK}</span>
-              </div>
-              <div className="live-data-row">
-                <span className="live-data-label">Comment</span>
-                <span className="live-data-value" title={liveC}>{liveC}</span>
-              </div>
-            </div>
-
-            <div className="stats-row">
-              <div className="stat-box success">
-                <div>
-                  <div className="stat-label">Success</div>
-                  <div className="stat-value">{sCount}</div>
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(16,185,129,0.5)">
-                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                </svg>
-              </div>
-              <div className="stat-box failed">
-                <div>
-                  <div className="stat-label">Failed</div>
-                  <div className="stat-value">{fCount}</div>
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(239,68,68,0.5)">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
-                </svg>
-              </div>
-            </div>
-
-            <textarea
-              id="failedLog"
-              ref={failedLogRef}
-              readOnly
-              placeholder="Missing / Failed entries will appear here..."
-              value={failedLog}
-            ></textarea>
-
-            <button id="downloadBtn" onClick={handleDownload} disabled={!failedLog}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                <path d="M12 16L7 11H10V4H14V11H17L12 16Z" />
-                <path d="M4 18H20V20H4V18Z" />
-              </svg>
-              Download Missing Data
-            </button>
-
-            <button 
-              id="resetBtn" 
-              onClick={handleReset}
+          {/* RIGHT COL */}
+          <div className="col-right">
+            <div
+              className="card"
               style={{
-                backgroundColor: '#ef4444',
-                marginTop: '7px',
-                fontSize: '11.5px'
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v4l5-5-5-5v4z" />
-              </svg>
-              Reset All
-            </button>
+              <div className="card-label">Live Monitor</div>
+
+              <div className="progress-card">
+                <div className="progress-header">
+                  <span className="progress-label">Progress</span>
+                  <span>
+                    {done} / {total}
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: total > 0 ? `${(done / total) * 100}%` : "0%",
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="live-data">
+                <div className="live-data-row">
+                  <span className="live-data-label">Holding</span>
+                  <span className="live-data-value" title={liveH}>
+                    {liveH}
+                  </span>
+                </div>
+                <div className="live-data-row">
+                  <span className="live-data-label">Khatian</span>
+                  <span className="live-data-value" title={liveK}>
+                    {liveK}
+                  </span>
+                </div>
+                <div className="live-data-row">
+                  <span className="live-data-label">Comment</span>
+                  <span className="live-data-value" title={liveC}>
+                    {liveC}
+                  </span>
+                </div>
+              </div>
+
+              <div className="stats-row">
+                <div className="stat-box success">
+                  <div>
+                    <div className="stat-label">Success</div>
+                    <div className="stat-value">{sCount}</div>
+                  </div>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="rgba(16,185,129,0.5)"
+                  >
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                  </svg>
+                </div>
+                <div className="stat-box failed">
+                  <div>
+                    <div className="stat-label">Failed</div>
+                    <div className="stat-value">{fCount}</div>
+                  </div>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="rgba(239,68,68,0.5)"
+                  >
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+                  </svg>
+                </div>
+              </div>
+
+              <textarea
+                id="failedLog"
+                ref={failedLogRef}
+                readOnly
+                placeholder="Missing / Failed entries will appear here..."
+                value={failedLog}
+              ></textarea>
+
+              <button
+                id="downloadBtn"
+                onClick={handleDownload}
+                disabled={!failedLog}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 16L7 11H10V4H14V11H17L12 16Z" />
+                  <path d="M4 18H20V20H4V18Z" />
+                </svg>
+                Download Missing Data
+              </button>
+
+              <button
+                id="resetBtn"
+                onClick={handleReset}
+                style={{
+                  backgroundColor: "#ef4444",
+                  marginTop: "7px",
+                  fontSize: "11.5px",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v4l5-5-5-5v4z" />
+                </svg>
+                Reset All
+              </button>
+            </div>
           </div>
         </div>
-      </div>
       ) : (
-      <div className="main-content khatian-tab-content">
-        <KhatianPanel />
-      </div>
+        <div className="main-content khatian-tab-content">
+          <KhatianPanel />
+        </div>
       )}
 
       {/* ═══ FOOTER ═══ */}
       <div className="app-footer">
         <div className="footer-left">
           <span>Developed by</span>
-          <span style={{ color: 'var(--primary)', fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>Automation</span>
+          <span
+            style={{
+              color: "var(--primary)",
+              fontWeight: 700,
+              fontFamily: "'JetBrains Mono',monospace",
+            }}
+          >
+            Automation
+          </span>
           <div className="footer-dot"></div>
           <span>Update Comming Soon</span>
           <div className="footer-dot"></div>

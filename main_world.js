@@ -430,6 +430,10 @@
 (function () {
   'use strict';
 
+   // ==========================================
+  // 🚫 EARLY EXIT — শুধু log site এ চলবে
+  // ==========================================
+  if (!window.location.href.includes('log.ldd4ig.org')) return;
   // ==========================================
   // ⚙️ CONFIG
   // ==========================================
@@ -494,10 +498,7 @@
     if (!bar) return;
     const colors = { info: '#7ecfff', success: '#5dfc8a', error: '#ff6b6b', warn: '#ffc107' };
     bar.innerHTML = `
-      <span style="color:${colors[type] || '#fff'}">● ${msg}</span><br>
-      <span style="font-size:11px; color:#aaa">
-        ✅ সফল: ${state.successCount} &nbsp; ❌ ব্যর্থ: ${state.failCount}
-      </span>
+      <span style="color:${colors[type] || '#fff'}">● ${msg}</span>
     `;
   }
 
@@ -725,6 +726,7 @@
     }, true);
 
     window.addEventListener('keydown', e => {
+      if (!isLogSite()) return; // ← অন্য site এ কিছুই করবে না
       if (e.key === "Escape") { e.preventDefault(); incrementKhatian(); }
 
       if (isLogSite() && (e.key === ' ' || e.code === 'Space')) {
@@ -750,8 +752,8 @@
       }
     });
 
-    window.addEventListener('mousedown', e => { if (e.button === 3) { e.preventDefault(); incrementKhatian(); } });
-    window.addEventListener('mouseup',   e => { if (e.button === 3) e.preventDefault(); });
+    window.addEventListener('mousedown', e => { if (!isLogSite()) return; if (e.button === 3) { e.preventDefault(); incrementKhatian(); } });
+    window.addEventListener('mouseup',   e => { if (!isLogSite()) return; if (e.button === 3) e.preventDefault(); });
 
     state.listenersAttached = true;
   }
