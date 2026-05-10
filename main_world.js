@@ -767,7 +767,7 @@
 
     const allowedNames = await fetchAllowedNames();
     if (allowedNames.length === 0) {
-      setStatus("❌ নাম আনতে ব্যর্থ। স্ক্রিপ্ট বন্ধ।", 'error');
+      setStatus("❌ এই অ্যাকাউন্ট এর অনুমতি নেই।", 'error');
       return;
     }
 
@@ -775,7 +775,7 @@
     const authorizedUser = await waitForAuthorizedUser(allowedNames);
 
     if (!authorizedUser) {
-      setStatus("❌ অনুমতি নেই বা সময় শেষ।", 'error');
+      setStatus("❌ এই অ্যাকাউন্ট এর অনুমতি নেই।", 'error');
       return;
     }
 

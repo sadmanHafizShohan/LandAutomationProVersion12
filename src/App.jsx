@@ -180,6 +180,49 @@ function App() {
     });
   };
 
+
+
+// const sendMessage = (action, data = null, delayParam = null) => {
+//     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+//       if (!tabs || tabs.length === 0) {
+//         setStatusMsg("❌ No active tab found!");
+//         setStatusState("error");
+//         return;
+//       }
+
+//       const tabId = tabs[0].id;
+//       const tabUrl = tabs[0].url;
+
+//       // ✅ এই list-এ শুধু allowed সাইট রাখুন
+//       const allowedSites = [
+//         "log.ldd4ig.org"
+//       ];
+
+//       const isAllowed = allowedSites.some(site => tabUrl && tabUrl.includes(site));
+
+//       if (!isAllowed) {
+//         setStatusMsg("❌ Not on supported site!");
+//         setStatusState("error");
+//         return;  // ← এখানেই বন্ধ হয়ে যাবে
+//       }
+
+//       // বাকি আগের code হুবহু একই থাকবে...
+//       chrome.tabs.sendMessage(
+//         tabId,
+//         { action, data, delay: delayParam },
+//         (response) => {
+//           if (chrome.runtime.lastError) {
+//             setStatusMsg("❌ Content script not loaded. Refresh page!");
+//             setStatusState("error");
+//             return;
+//           }
+//           if (response && response.success && action === "start") {
+//             console.log("[AEP] Lines:", response.linesReceived);
+//           }
+//         },
+//       );
+//     });
+// };
   const handleStart = () => {
     if (!file) {
       alert("Please upload a file first!");
@@ -658,3 +701,4 @@ function App() {
 }
 
 export default App;
+
