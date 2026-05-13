@@ -1572,6 +1572,35 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (e.key === "Enter") {
           e.preventDefault();
           btn.click();
+          
+          // Mouse cursor id="owner-name" element এ নিয়ে যাও
+          const ownerNameEl = document.querySelector("#owner-name");
+          if (ownerNameEl) {
+            const rect = ownerNameEl.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            // Mousemove event dispatch করো
+            const mouseEvent = new MouseEvent("mousemove", {
+              bubbles: true,
+              cancelable: true,
+              view: window,
+              clientX: centerX,
+              clientY: centerY
+            });
+            ownerNameEl.dispatchEvent(mouseEvent);
+            
+            // Mouseover event also dispatch করো
+            const mouseOverEvent = new MouseEvent("mouseover", {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            ownerNameEl.dispatchEvent(mouseOverEvent);
+            
+            // Focus করো
+            ownerNameEl.focus();
+          }
         }
       });
     }
