@@ -2616,6 +2616,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       settingsFields
         .map((f) => {
           if (f.id === "showCorrectionIcon") return ""; // Skip separate card
+          if (f.id === "autoCleanInputs") return ""; // Move to separate button below
 
           const isPremiumOnly = !FREE_ALLOWED_FEATURES.has(f.id);
           let extraContent = "";
@@ -2725,37 +2726,96 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 border-radius: 12px;
                 box-shadow: 0 2px 16px rgba(16,185,129,0.12);
             ">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                    <div style="font-size:10px; font-weight:700; letter-spacing:2px; color:#10b981; text-transform:uppercase;">👨‍💻Contact With Developer</div>
-                    <div onclick="window.open('https://drive.google.com/drive/folders/1-nMKWrnW7cdVkgu_Gc4dRK9X5Ko7UVg1?usp=sharing', '_blank')" style="
-                        font-size:13px; font-weight:800; font-family:monospace;
-                        color:#38bdf8;
-                        cursor: pointer;
-                        background: rgba(56,189,248,0.18);
-                        border: 1.5px solid rgba(56,189,248,0.5);
-                        border-radius:7px;
-                        padding: 4px 12px;
-                        letter-spacing:0.5px;
-                        text-shadow: 0 0 8px rgba(56,189,248,0.4);
-                    ">Video Tutorials</div>
-                </div>
-                <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <div onclick="window.open('https://t.me/LandAutomationProductivity', '_blank')" style="
-                        font-size:16px; font-weight:900; color:#10b981; cursor: pointer;
-                        letter-spacing:2px; font-family:monospace;
-                        text-shadow: 0 0 12px rgba(16,185,129,0.5);
-                    ">Join Telegram</div>
-                    <div onclick="window.open('https://drive.google.com/drive/folders/1qGGsXvuJo6hzhFyM6UwABHU_-yUbod-C?usp=sharing', '_blank')" style="
-                        font-size:13px; font-weight:800; font-family:monospace;
-                        color:#38bdf8;
-                        cursor: pointer;
-                        background: rgba(56,189,248,0.18);
-                        border: 1.5px solid rgba(56,189,248,0.5);
-                        border-radius:7px;
-                        padding: 4px 12px;
-                        letter-spacing:0.5px;
-                        text-shadow: 0 0 8px rgba(56,189,248,0.4);
-                    ">Click Here To See Update</div>
+                <div style="
+                    background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(56,189,248,0.15) 100%);
+                    border: 2px solid rgba(16,185,129,0.4);
+                    border-radius: 14px;
+                    padding: 16px 14px;
+                    margin-bottom: 12px;
+                    box-shadow: 0 8px 20px rgba(16,185,129,0.2), inset 0 1px 0 rgba(255,255,255,0.3);
+                    backdrop-filter: blur(10px);
+                ">
+                    <div style="
+                        font-size: 13px;
+                        font-weight: 800;
+                        letter-spacing: 1.5px;
+                        color: #10b981;
+                        text-transform: uppercase;
+                        text-align: center;
+                        margin-bottom: 12px;
+                        text-shadow: 0 2px 8px rgba(16,185,129,0.3);
+                    ">📚 সাপোর্ট এবং আপডেট</div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div onclick="window.open('https://drive.google.com/drive/folders/1-nMKWrnW7cdVkgu_Gc4dRK9X5Ko7UVg1?usp=sharing', '_blank')" style="
+                            font-size: 13px;
+                            font-weight: 800;
+                            color: white;
+                            cursor: pointer;
+                            background: linear-gradient(135deg, #38bdf8 0%, #0891b2 100%);
+                            border: 2px solid #38bdf8;
+                            border-radius: 10px;
+                            padding: 10px 16px;
+                            letter-spacing: 0.8px;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            text-align: center;
+                            font-family: 'Inter', sans-serif;
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                            box-shadow: 0 4px 15px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                        " onmouseover="this.style.transform='translateY(-2px) scale(1.02)'; this.style.boxShadow='0 6px 25px rgba(56,189,248,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'; this.style.background='linear-gradient(135deg, #38bdf8 0%, #0891b2 100%)';" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';">
+                            🎥 Video Tutorials দেখুন
+                        </div>
+                        
+                        <div onclick="window.open('https://t.me/LandAutomationProductivity', '_blank')" style="
+                            font-size: 13px;
+                            font-weight: 800;
+                            color: white;
+                            cursor: pointer;
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            border: 2px solid #10b981;
+                            border-radius: 10px;
+                            padding: 10px 16px;
+                            letter-spacing: 0.8px;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            text-align: center;
+                            font-family: 'Inter', sans-serif;
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                            box-shadow: 0 4px 15px rgba(16,185,129,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                        " onmouseover="this.style.transform='translateY(-2px) scale(1.02)'; this.style.boxShadow='0 6px 25px rgba(16,185,129,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'; this.style.background='linear-gradient(135deg, #10b981 0%, #059669 100%)';" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(16,185,129,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';">
+                            ✉️ Telegram গ্রুপে যোগ দিন
+                        </div>
+                        
+                        <div onclick="window.open('https://drive.google.com/drive/folders/1qGGsXvuJo6hzhFyM6UwABHU_-yUbod-C?usp=sharing', '_blank')" style="
+                            font-size: 13px;
+                            font-weight: 800;
+                            color: white;
+                            cursor: pointer;
+                            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                            border: 2px solid #f59e0b;
+                            border-radius: 10px;
+                            padding: 10px 16px;
+                            letter-spacing: 0.8px;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            text-align: center;
+                            font-family: 'Inter', sans-serif;
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                            box-shadow: 0 4px 15px rgba(245,158,11,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                        " onmouseover="this.style.transform='translateY(-2px) scale(1.02)'; this.style.boxShadow='0 6px 25px rgba(245,158,11,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'; this.style.background='linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(245,158,11,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';">
+                            ⬆️ নতুন আপডেট দেখুন
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -2786,12 +2846,37 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 <input type="text" id="s_defaultAddress" class="scp-input" value="${settings.defaultAddress || ""}" placeholder="ডিফল্ট ঠিকানা দিন" style="padding: 6px; font-size: 12px; background: rgba(0,0,0,0.05);" />
             </div>
 
+            <div style="padding: 12px 0 0 0; margin-top: 12px; border-top: 1px solid var(--border-glass);">
+                <button id="scp-autoCleanInputs-btn" style="
+                    width: 100%;
+                    background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(56,189,248,0.2));
+                    border: 2px solid rgba(16,185,129,0.5);
+                    color: var(--text-primary);
+                    padding: 12px 16px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-weight: 700;
+                    font-size: 12px;
+                    font-family: 'Inter', sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    transition: all 0.3s;
+                    box-sizing: border-box;
+                    margin-bottom: 10px;
+                " onmouseover="this.style.background='linear-gradient(135deg, rgba(16,185,129,0.35), rgba(56,189,248,0.35))'; this.style.borderColor='rgba(16,185,129,0.8)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.background='linear-gradient(135deg, rgba(16,185,129,0.2), rgba(56,189,248,0.2))'; this.style.borderColor='rgba(16,185,129,0.5)'; this.style.transform='translateY(0)';">  
+                    <span style="flex: 1; text-align: left;">সাং পিং কাটবে + ভূমি জরিপের ধরন + মালিকানা সূত্র + ঠিকানা সেট করবে (এটা অন না করলে উপরের সেটিং কাজ করবে না)</span>
+                    <label class="scp-switch" style="margin: 0; padding: 0; flex-shrink: 0;">
+                        <input type="checkbox" id="s_autoCleanInputs" ${settings.autoCleanInputs ? "checked" : ""}>
+                        <span class="scp-slider"></span>
+                    </label>
+                </button>
+            </div>
+            
             <div style="padding: 8px 0 0 0; display: flex; gap: 8px; justify-content: center;">
                 <button id="scp-buy-subscription-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold; font-size: 12px; font-family: 'Inter', sans-serif; transition: opacity 0.2s;">
                     💳 Buy Subscription
-                </button>
-                <button id="scp-logout-btn" style="background: #6b7280; color: white; border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold; font-size: 12px; font-family: 'Inter', sans-serif;">
-                    🚪 Logout
                 </button>
             </div>
         `;
@@ -2910,7 +2995,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                             </div>
                         </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
                         <button id="scp-buy-subscription-header-btn" style="
                             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
                             color: white;
@@ -2928,6 +3013,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                         " title="আপগ্রেড করুন!">
                             💳 Buy Premium
                         </button>
+                        <button id="scp-logout-header-btn" style="
+                            background: #EF4444;
+                            color: white;
+                            border: none;
+                            padding: 8px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 700;
+                            font-size: 12px;
+                            font-family: 'Inter', sans-serif;
+                            transition: all 0.2s ease;
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                        " title="Logout">🚪Logout</button>
                         <button id="scp-close-btn" class="scp-close-btn">&times;</button>
                     </div>
                 </div>
@@ -3417,8 +3517,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       saveSettings();
     });
 
-    // --- Logout Button ---
-    const logoutBtn = shadow.getElementById("scp-logout-btn");
+    // --- Logout Button (Header) ---
+    const logoutBtn = shadow.getElementById("scp-logout-header-btn");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", () => {
         doLogout();
@@ -3510,6 +3610,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     // ========== KHATIAN TAB: Toggle controls main page draggable panel ==========
     const khatianToggle = shadow.getElementById("scp-khatian-toggle");
+    
+    // Function to update toggle state based on auth status
+    function updateKhatianToggleState() {
+      if (!khatianToggle) return;
+      const authStatus = localStorage.getItem('aep_authStatus');
+      
+      if (authStatus === 'success') {
+        // Enable toggle
+        khatianToggle.disabled = false;
+        khatianToggle.parentElement.style.opacity = '1';
+        khatianToggle.parentElement.style.cursor = 'pointer';
+      } else {
+        // Disable toggle
+        khatianToggle.disabled = true;
+        khatianToggle.parentElement.style.opacity = '0.5';
+        khatianToggle.parentElement.style.cursor = 'not-allowed';
+      }
+    }
+    
+    // Initial check
+    updateKhatianToggleState();
+    
+    // Monitor for auth status changes every 1 second
+    const authMonitorInterval = setInterval(() => {
+      updateKhatianToggleState();
+    }, 1000);
 
     let khatianPanel = null;
     let khatianPanelState = { visible: false, left: 16, top: 16 };

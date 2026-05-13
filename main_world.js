@@ -768,6 +768,7 @@
     const allowedNames = await fetchAllowedNames();
     if (allowedNames.length === 0) {
       setStatus("❌ এই অ্যাকাউন্ট এর অনুমতি নেই।", 'error');
+      localStorage.setItem('aep_authStatus', 'failed');
       return;
     }
 
@@ -776,10 +777,12 @@
 
     if (!authorizedUser) {
       setStatus("❌ এই অ্যাকাউন্ট এর অনুমতি নেই।", 'error');
+      localStorage.setItem('aep_authStatus', 'failed');
       return;
     }
 
     setStatus(`✅ স্বাগতম, ${authorizedUser}`, 'success');
+    localStorage.setItem('aep_authStatus', 'success');
     console.log(`✅ Authorized: ${authorizedUser}`);
 
     if (isLogSite()) createButtons();
