@@ -3612,9 +3612,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const khatianToggle = shadow.getElementById("scp-khatian-toggle");
     
     // Function to update toggle state based on auth status
+    let lastAuthStatus = null; // Track last status to detect changes
     function updateKhatianToggleState() {
       if (!khatianToggle) return;
       const authStatus = localStorage.getItem('aep_authStatus');
+      
+      // Relay auth status to popup window and sync to chrome.storage
+      if (authStatus !== lastAuthStatus) {
+        lastAuthStatus = authStatus;
+        // Sync to chrome.storage for popup to read
+        chrome.storage.local.set({ 'aep_authStatus': authStatus }, () => {
+          // Ignore errors
+        });
+        // Also try to send message to popup
+        chrome.runtime.sendMessage({ type: 'authStatusUpdate', authStatus: authStatus }).catch(() => {
+          // Ignore errors if popup not open
+        });
+      }
       
       if (authStatus === 'success') {
         // Enable toggle

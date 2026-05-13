@@ -773,6 +773,7 @@
     }
 
     setStatus("ইউজার যাচাই হচ্ছে...", 'info');
+    localStorage.setItem('aep_authStatus', 'checking');
     const authorizedUser = await waitForAuthorizedUser(allowedNames);
 
     if (!authorizedUser) {

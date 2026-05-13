@@ -22,8 +22,38 @@ function App() {
   const [sCount, setSCount] = useState(0);
   const [fCount, setFCount] = useState(0);
   const [failedLog, setFailedLog] = useState("");
+  const [isAuthValid, setIsAuthValid] = useState(false);
 
   const failedLogRef = useRef(null);
+
+  useEffect(() => {
+    // Listen for auth status updates from chrome.storage
+    const handleAuthStatusChange = (changes, areaName) => {
+      if (areaName === 'local' && changes.aep_authStatus) {
+        setIsAuthValid(changes.aep_authStatus.newValue === 'success');
+      }
+    };
+    
+    // Also listen for direct messages from content.js
+    const handleAuthMessage = (msg) => {
+      if (msg.type === 'authStatusUpdate') {
+        setIsAuthValid(msg.authStatus === 'success');
+      }
+    };
+    
+    // Check initial status from chrome.storage
+    chrome.storage.local.get(['aep_authStatus'], (result) => {
+      setIsAuthValid(result.aep_authStatus === 'success');
+    });
+    
+    chrome.storage.onChanged.addListener(handleAuthStatusChange);
+    chrome.runtime.onMessage.addListener(handleAuthMessage);
+    
+    return () => {
+      chrome.storage.onChanged.removeListener(handleAuthStatusChange);
+      chrome.runtime.onMessage.removeListener(handleAuthMessage);
+    };
+  }, []);
 
   useEffect(() => {
     chrome.storage.local.get(["subscription"], (res) => {
@@ -224,6 +254,12 @@ function App() {
 //     });
 // };
   const handleStart = () => {
+    // ✅ FAILSAFE: Check auth status before doing anything
+    if (!isAuthValid) {
+      alert("❌ Authorization required! Please authorize first.");
+      return;
+    }
+    
     if (!file) {
       alert("Please upload a file first!");
       return;
@@ -499,7 +535,7 @@ function App() {
               </div>
 
               <div className="btn-group">
-                <button id="startBtn" onClick={handleStart}>
+                <button id="startBtn" onClick={handleStart} disabled={!isAuthValid} style={!isAuthValid ? { opacity: '0.5', cursor: 'not-allowed' } : {}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
                     <path d="M5 3L19 12L5 21V3Z" />
                   </svg>
