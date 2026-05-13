@@ -1629,14 +1629,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   function applySplit() {
     if (!settings.shareSplit) return;
     const inputs = document.querySelectorAll(".owner-land-portion");
-    if (inputs.length === 2) {
-      inputs[0].value = toBn("0.5");
-      inputs[1].value = toBn("0.5");
-    } else if (inputs.length === 3) {
-      inputs[0].value = toBn("0.333");
-      inputs[1].value = toBn("0.333");
-      inputs[2].value = toBn("0.334");
-    }
+    
+    if (inputs.length === 0) return;
+    
+    // প্রতিটা গৃহের জন্য সমান ভাগ
+    const perPortion = 1 / inputs.length;
+    const portionValueStr = perPortion.toFixed(3);
+    
+    inputs.forEach((input, index) => {
+      if (index === inputs.length - 1) {
+        // শেষটাকে বাকি অংশ দিয়ে পূর্ণ করো যাতে মোট ঠিক 1 হয়
+        let totalBefore = parseFloat(portionValueStr) * (inputs.length - 1);
+        let lastValue = (1 - totalBefore).toFixed(3);
+        input.value = toBn(lastValue);
+      } else {
+        input.value = toBn(portionValueStr);
+      }
+    });
+    
     inputs.forEach((i) =>
       i.dispatchEvent(new Event("input", { bubbles: true })),
     );

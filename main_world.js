@@ -800,3 +800,198 @@
   else initApp();
 
 })();
+
+// Auto Copy button Address & Land Percentage
+
+(function() {
+    'use strict';
+
+    // বাটন তৈরি করার জন্য একটি সাধারণ ফাংশন
+    function createCopyButton(element, groupSelector, btnIdPrefix, index) {
+        const btnId = btnIdPrefix + index;
+
+        // বাটন আগে থেকে থাকলে নতুন করে বানাবে না
+        if (document.getElementById(btnId)) return;
+
+        const copyBtn = document.createElement('button');
+        copyBtn.id = btnId;
+        copyBtn.innerText = 'Copy to All';
+        copyBtn.style.cssText = `
+            display: inline-block;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            padding: 4px 8px;
+            background-color: #12633D;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        `;
+
+        // বক্সের ঠিক নিচে বাটনটি বসিয়ে দেওয়া হচ্ছে
+        element.parentNode.insertBefore(copyBtn, element.nextSibling);
+
+        // বাটনে ক্লিক করলে যা হবে
+        copyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const textToCopy = element.value;
+            const allTargetElements = document.querySelectorAll(groupSelector);
+            let count = 0;
+
+            allTargetElements.forEach(function(targetElement) {
+                // যেই বক্সের বাটনে ক্লিক করা হয়েছে, সেটি বাদে বাকিগুলোতে পেস্ট করবে
+                if (targetElement !== element) {
+                    targetElement.value = textToCopy;
+                    count++;
+                }
+            });
+
+            // বাটনের টেক্সট পরিবর্তন করে কনফার্মেশন দেওয়া
+            const originalText = copyBtn.innerText;
+            copyBtn.innerText = 'Copied to ' + count + ' boxes!';
+            copyBtn.style.backgroundColor = '#008CBA';
+
+            // ২ সেকেন্ড পর আগের অবস্থায় ফেরত
+            setTimeout(() => {
+                copyBtn.innerText = originalText;
+                copyBtn.style.backgroundColor = '#4CAF50';
+            }, 2000);
+        });
+    }
+
+    function addButtonsToAllFields() {
+        // ১. ঠিকানা (Address) বক্সগুলোর জন্য
+        const addressSelector = 'textarea[id^="ownerAddress"]';
+        const addressTextareas = document.querySelectorAll(addressSelector);
+        addressTextareas.forEach(function(textarea, index) {
+            createCopyButton(textarea, addressSelector, 'btn-address-', index);
+        });
+
+        // ২. জমির অংশ (Land Percentage) বক্সগুলোর জন্য
+        // এখানে name="owner[x][land_percentage]" সিলেক্ট করা হয়েছে কারণ সবগুলোর id সেম
+        const percentageSelector = 'input[name*="[land_percentage]"]';
+        const percentageInputs = document.querySelectorAll(percentageSelector);
+        percentageInputs.forEach(function(input, index) {
+            createCopyButton(input, percentageSelector, 'btn-percent-', index);
+        });
+    }
+
+    // পেজ লোড হওয়ার পর বাটন অ্যাড করা
+    window.addEventListener('load', function() {
+        addButtonsToAllFields();
+        // নতুন বক্স আসলে অটোমেটিক বাটন অ্যাড করার জন্য প্রতি ১ সেকেন্ড পর চেক করবে
+        setInterval(addButtonsToAllFields, 1000);
+    });
+
+})();
+
+
+// Enable Copy & Paste on Owner & Father Name
+(function() {
+    'use strict';
+
+    // ইনপুট ফিল্ডগুলো খুঁজে বের করে কপি-পেস্ট এনাবল করার ফাংশন
+    function enableCopyPaste() {
+        // একাধিক আইডি সিলেক্ট করার সঠিক পদ্ধতি
+        const selectors = '#owner-name, #verify-father-name, [name="owner-name"], [name="verify-father-name"]';
+        const inputFields = document.querySelectorAll(selectors);
+
+        inputFields.forEach(field => {
+            // যদি আগে থেকেই এনাবল না করা থাকে
+            if (!field.dataset.copyPasteEnabled) {
+
+                // ১. Copy, Paste এবং Cut ইভেন্ট আনব্লক করা
+                ['copy', 'paste', 'cut'].forEach(eventType => {
+                    field.addEventListener(eventType, function(e) {
+                        e.stopImmediatePropagation(); // অন্য স্ক্রিপ্টের বাধা কাটানো
+                        return true;
+                    }, true);
+                });
+
+                // ২. কিবোর্ড শর্টকাট (Ctrl+C, Ctrl+V, Ctrl+X) এনাবল করা
+                field.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && ['c', 'C', 'v', 'V', 'x', 'X'].includes(e.key)) {
+                        e.stopImmediatePropagation();
+                    }
+                }, true);
+
+                // ৩. অনাকাঙ্ক্ষিত ইনলাইন ইভেন্ট হ্যান্ডলার রিমুভ করা
+                field.onpaste = null;
+                field.oncopy = null;
+                field.oncut = null;
+
+                // মার্ক করে রাখা যাতে বারবার একই কাজ না করে
+                field.dataset.copyPasteEnabled = 'true';
+                console.log("Copy & Paste enabled on: " + (field.id || field.name));
+            }
+        });
+    }
+
+    // পেজ লোড হওয়ার পর এবং ডাইনামিক ফিল্ডের জন্য ১ সেকেন্ড পরপর চেক করা
+    setInterval(enableCopyPaste, 1000);
+})();
+
+// auto comment ভূমি জরিপের ধরন/মালিকানা সূত্র সংশোধন করা হল if not available
+(function() {
+    'use strict';
+
+    // ১. React বা Vue এর টেক্সটবক্সে জোর করে লেখা বসানোর ফাংশন (Hack)
+    function setNativeValue(element, value) {
+        const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+        const prototype = Object.getPrototypeOf(element);
+        const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, "value").set;
+
+        if (valueSetter && valueSetter !== prototypeValueSetter) {
+            prototypeValueSetter.call(element, value);
+        } else {
+            valueSetter.call(element, value);
+        }
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // ২. আগের পেজের ডাটা চেক করে মেমোরিতে রাখা
+    setInterval(() => {
+        const h1Tags = document.querySelectorAll('h1');
+        let shouldFill = false;
+
+        for (let h1 of h1Tags) {
+            if (h1.textContent.includes("ভূমি জরিপের ধরন:")) {
+                // ভেতরের সব স্পেস এবং এন্টার মুছে চেক করবে
+                let text = h1.textContent.replace("ভূমি জরিপের ধরন:", "").replace(/\s+/g, "");
+                if (text === "") {
+                    shouldFill = true;
+                }
+                break;
+            }
+        }
+
+        if (shouldFill) {
+            localStorage.setItem('fillCommentPlz', 'yes');
+        } else {
+            localStorage.removeItem('fillCommentPlz');
+        }
+    }, 500);
+
+    // ৩. MutationObserver (পেজে Textarea আসামাত্রই চোখের পলকে লেখা বসিয়ে দেবে)
+    const observer = new MutationObserver((mutations) => {
+        if (localStorage.getItem('fillCommentPlz') === 'yes') {
+            const textarea = document.querySelector('textarea[name="comments"]');
+
+            if (textarea && textarea.value.trim() === "") {
+                // React Hack ব্যবহার করে লেখা বসানো হচ্ছে
+                setNativeValue(textarea, "ভূমি জরিপের ধরন/মালিকানা সূত্র সংশোধন করা হল");
+
+                // কাজ শেষ, তাই মেমোরি ক্লিয়ার
+                localStorage.removeItem('fillCommentPlz');
+            }
+        }
+    });
+
+    // পুরো পেজের যেকোনো পরিবর্তনের উপর নজর রাখা হচ্ছে
+    observer.observe(document.body, { childList: true, subtree: true });
+
+})();
