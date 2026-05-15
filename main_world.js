@@ -477,29 +477,101 @@
   const bnToEn = (str) => str.toString().replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
 
   // ==========================================
-  // 📊 FLOATING STATUS BAR
+  // 📊 FLOATING STATUS BAR + MENU (COLLAPSIBLE)
   // ==========================================
   function createStatusBar() {
-    if (document.getElementById('uscript-status')) return;
+    if (document.getElementById('uscript-status-container')) return;
+    
+    const container = document.createElement('div');
+    container.id = 'uscript-status-container';
+    container.style.cssText = `
+      position:fixed; bottom:80px; right:10px; z-index:99999;
+      display:flex; flex-direction:column; align-items:flex-end; gap:8px;
+    `;
+    
+    // Status message (hidden by default, expandable)
     const bar = document.createElement('div');
     bar.id = 'uscript-status';
     bar.style.cssText = `
-      position:fixed; bottom:130px; right:10px; z-index:99999;
       background:rgba(0,0,0,0.78); color:#fff; font-size:13px;
       padding:8px 14px; border-radius:8px; min-width:220px;
-      font-family:monospace; line-height:1.7; pointer-events:none;
+      font-family:monospace; line-height:1.7; pointer-events:auto;
       box-shadow:0 2px 10px rgba(0,0,0,0.4);
+      max-height:0; overflow:hidden; transition:max-height 0.3s ease;
+      opacity:0; transition:opacity 0.3s ease;
     `;
-    document.body.appendChild(bar);
+    
+    // Dropdown menu (hidden by default)
+    const menu = document.createElement('div');
+    menu.id = 'uscript-menu';
+    menu.style.cssText = `
+      background:rgba(0,0,0,0.88); border-radius:8px;
+      padding:8px 0; min-width:150px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.5);
+      max-height:0; overflow:hidden; transition:max-height 0.3s ease;
+      opacity:0; transition:opacity 0.3s ease; pointer-events:auto;
+    `;
+    menu.style.display = 'none';
+    
+    // Toggle button (always visible, small icon)
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'uscript-status-toggle';
+    toggleBtn.innerText = '';
+    toggleBtn.style.cssText = `
+      width:10px; height:10px; padding:0; margin:0;
+      background:rgba(0,0,0,0.78); color:#fff;
+      border:2px solid #7ecfff; border-radius:50%;
+      cursor:pointer; font-size:18px;
+      box-shadow:0 2px 10px rgba(0,0,0,0.4);
+      transition:all 0.3s ease; outline:none;
+    `;
+    
+    container.appendChild(bar);
+    container.appendChild(menu);
+    container.appendChild(toggleBtn);
+    document.body.appendChild(container);
+    
+    // Toggle functionality
+    let isExpanded = false;
+    toggleBtn.addEventListener('click', () => {
+      isExpanded = !isExpanded;
+      if (isExpanded) {
+        bar.style.maxHeight = '300px';
+        bar.style.opacity = '1';
+        menu.style.maxHeight = '200px';
+        menu.style.opacity = '1';
+        menu.style.display = 'block';
+        toggleBtn.style.borderColor = '#5dfc8a';
+        toggleBtn.style.background = 'rgba(0,100,0,0.78)';
+      } else {
+        bar.style.maxHeight = '0';
+        bar.style.opacity = '0';
+        menu.style.maxHeight = '0';
+        menu.style.opacity = '0';
+        menu.style.display = 'none';
+        toggleBtn.style.borderColor = '#7ecfff';
+        toggleBtn.style.background = 'rgba(0,0,0,0.78)';
+      }
+    });
+    
+    // Store menu reference for button insertion
+    window.uscriptMenu = menu;
   }
 
   function setStatus(msg, type = 'info') {
     const bar = document.getElementById('uscript-status');
+    const toggleBtn = document.getElementById('uscript-status-toggle');
     if (!bar) return;
     const colors = { info: '#7ecfff', success: '#5dfc8a', error: '#ff6b6b', warn: '#ffc107' };
     bar.innerHTML = `
       <span style="color:${colors[type] || '#fff'}">● ${msg}</span>
     `;
+    
+    // Auto-expand on new message (optional: keep collapsed unless user expands)
+    // Uncomment next 3 lines if you want auto-expand on status update
+    // if (bar.style.maxHeight === '0px' || !bar.style.maxHeight) {
+    //   bar.style.maxHeight = '300px'; bar.style.opacity = '1';
+    // }
   }
 
   // ==========================================
@@ -674,34 +746,45 @@
   }
 
   // ==========================================
-  // 9. UI BUTTONS
+  // 9. UI BUTTONS (Inside Menu)
   // ==========================================
   function createButtons() {
     if (document.getElementById('auto-clicker-btn')) return;
 
     const style = document.createElement('style');
     style.textContent = `
-      #auto-clicker-btn { position:fixed; bottom:75px; right:20px; z-index:9999; padding:10px 15px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,.2); }
-      #auto-clicker-btn.in-progress { background:#ffc107; color:#000; cursor:wait; }
-      #auto-clicker-btn.completed   { background:#28a745; }
-      #master-loop-btn { position:fixed; bottom:20px; right:20px; z-index:99999; padding:12px 20px; background:#17a2b8; color:#fff; border:none; border-radius:5px; cursor:pointer; font-size:15px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,.3); }
-      #master-loop-btn.running { background:#dc3545; }
+      #auto-clicker-btn, #master-loop-btn { 
+        display:block; width:100%; padding:10px 15px; text-align:left;
+        background:none; color:#fff; border:none; cursor:pointer; font-size:13px;
+        font-weight:500; transition:all 0.2s ease; border-left:3px solid transparent;
+      }
+      #auto-clicker-btn:hover { background:rgba(0,150,200,0.3); border-left-color:#7ecfff; }
+      #master-loop-btn:hover { background:rgba(0,150,200,0.3); border-left-color:#5dfc8a; }
+      #auto-clicker-btn.in-progress { background:rgba(255,193,7,0.2); color:#ffc107; }
+      #auto-clicker-btn.completed { background:rgba(40,167,69,0.2); color:#5dfc8a; }
+      #master-loop-btn.running { background:rgba(220,53,69,0.2); color:#ff6b6b; }
     `;
     document.head.appendChild(style);
 
+    // Get the menu container
+    const menu = window.uscriptMenu || document.getElementById('uscript-menu');
+    if (!menu) return;
+
+    // Create "Start" button
     state.triggerButton = document.createElement('button');
     state.triggerButton.id = 'auto-clicker-btn';
-    state.triggerButton.innerText = CFG.triggerBtnText;
-    document.body.appendChild(state.triggerButton);
+    state.triggerButton.innerText = '▶ ' + CFG.triggerBtnText;
+    menu.appendChild(state.triggerButton);
     state.triggerButton.addEventListener('click', () => {
       if (state.triggerButton.classList.contains('completed')) resetButtonState();
       else if (!state.triggerButton.disabled && !state.isAutoRunning) runSingleCycle();
     });
 
+    // Create "Auto Start" button
     state.loopButton = document.createElement('button');
     state.loopButton.id = 'master-loop-btn';
     state.loopButton.innerText = "▶ Auto Start";
-    document.body.appendChild(state.loopButton);
+    menu.appendChild(state.loopButton);
     state.loopButton.addEventListener('click', () => {
       state.isAutoRunning = !state.isAutoRunning;
       if (state.isAutoRunning) {

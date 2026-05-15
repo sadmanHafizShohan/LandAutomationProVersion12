@@ -479,16 +479,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       "মামলা নম্বর সংশোধন করা হল",
       "আগত খতিয়ান নং ও নামজারি মামলা নম্বর সংশোধন করা হল",
       "দাগের মোট জমির পরিমান সংশোধন করা হল",
-      "জমির শ্রেনী সংশোধন করা হল",
-      "",
-      "",
-      "",
-      "",
+      "জমির শ্রেনী সংশোধন করা হল"
     ],
   };
 
   let settings = JSON.parse(localStorage.getItem(siteKey)) || defaultSettings;
-  if (!settings.pinnedComments || settings.pinnedComments.length !== 20) {
+  if (!settings.pinnedComments || settings.pinnedComments.length !== 16) {
     // Update to new 20 comments if old or missing
     settings.pinnedComments = defaultSettings.pinnedComments;
   }
@@ -2768,6 +2764,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                             gap: 8px;
                         " onmouseover="this.style.transform='translateY(-2px) scale(1.02)'; this.style.boxShadow='0 6px 25px rgba(56,189,248,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'; this.style.background='linear-gradient(135deg, #38bdf8 0%, #0891b2 100%)';" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';">
                             🎥 Video Tutorials দেখুন
+                        </div>
+                        <div onclick="window.open('https://sadmanhafizshohan.github.io/DataFormat/', '_blank')" style="
+                            font-size: 13px;
+                            font-weight: 800;
+                            color: white;
+                            cursor: pointer;
+                            background: linear-gradient(135deg, #38bdf8 0%, #0891b2 100%);
+                            border: 2px solid #38bdf8;
+                            border-radius: 10px;
+                            padding: 10px 16px;
+                            letter-spacing: 0.8px;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            text-align: center;
+                            font-family: 'Inter', sans-serif;
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                            box-shadow: 0 4px 15px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                        " onmouseover="this.style.transform='translateY(-2px) scale(1.02)'; this.style.boxShadow='0 6px 25px rgba(56,189,248,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'; this.style.background='linear-gradient(135deg, #38bdf8 0%, #0891b2 100%)';" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';">
+                            🎥 Convert Data
                         </div>
                         
                         <div onclick="window.open('https://t.me/LandAutomationProductivity', '_blank')" style="

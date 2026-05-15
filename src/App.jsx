@@ -148,6 +148,26 @@ function App() {
     }
   }, [failedLog]);
 
+  // Auto-download missing data when automation completes
+  useEffect(() => {
+    if (statusMsg.includes("Automation Complete") && failedLog.trim()) {
+      // Small delay to ensure UI updates before download
+      const timer = setTimeout(() => {
+        const blob = new Blob([failedLog], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "missing_data.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log("[AEP] Auto-downloaded missing data file");
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [statusMsg, failedLog]);
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
