@@ -482,6 +482,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     enableYearSelector: false,
     enableAutoHolding: false,
     enableMultipleUrlOpen: false,
+    enableDataCollector: false,
     surveyValue: "আর এস",
     sourceValue: "সর্বশেষ জরিপ অনুযায়ী",
     defaultAddress: " জামসিং, থানাঃ সাভার, ঢাকা।",
@@ -2541,6 +2542,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       { id: "enableYearSelector", label: "📅 Year/Shal সিলেক্টর" },
       { id: "enableAutoHolding", label: "🤖 Auto Holding entry" },
       { id: "enableMultipleUrlOpen", label: "🔗 Multiple URL Open" },
+      { id: "enableDataCollector", label: "📊 Data Collector" },
       {
         id: "autoCleanInputs",
         label:
@@ -3330,13 +3332,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (f.id === "enableMultipleUrlOpen") {
           if (e.target.checked) {
             if (!multipleUrlOpenPanel) createMultipleUrlOpenPanel();
-            multipleUrlOpenPanel.style.display = "block";
-            multipleUrlOpenPanelState.visible = true;
+            multipleUrlOpenPanelState.visible = false;
           } else {
+            removeMultipleUrlOpenLauncher();
             if (multipleUrlOpenPanel) multipleUrlOpenPanel.style.display = "none";
             multipleUrlOpenPanelState.visible = false;
           }
           localStorage.setItem("muo_panel_state", JSON.stringify(multipleUrlOpenPanelState));
+        }
+        if (f.id === "enableDataCollector") {
+          if (e.target.checked) {
+            if (!dcLauncher) createDataCollectorLauncher();
+            dataCollectorPanelState.visible = false;
+          } else {
+            removeDataCollectorLauncher();
+            if (dataCollectorPanel) dataCollectorPanel.style.display = "none";
+            dataCollectorPanelState.visible = false;
+          }
+          localStorage.setItem("dc_panel_state", JSON.stringify(dataCollectorPanelState));
         }
       });
     });
@@ -3662,6 +3675,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     let multipleUrlOpenPanel = null;
     let multipleUrlOpenPanelState = { visible: false, left: 16, top: 140 };
+
+    let dataCollectorPanel = null;
+    let dataCollectorPanelState = { visible: false, left: 16, top: 200 };
 
     // Load saved state
     try {
@@ -4799,6 +4815,684 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         multipleUrlOpenToggle.checked = true;
         setTimeout(() => {
           if (!muoLauncher) createMultipleUrlOpenLauncher();
+        }, 100);
+      }
+    }
+
+    // ========== DATA COLLECTOR LAUNCHER & PANEL SETUP ==========
+    const dataCollectorToggle = shadow.getElementById("s_enableDataCollector");
+
+    // Load saved Data Collector state
+    try {
+      const saved = localStorage.getItem("dc_panel_state");
+      if (saved) dataCollectorPanelState = JSON.parse(saved);
+    } catch (e) {}
+
+    let dcLauncher = null;
+
+    function createDataCollectorLauncher() {
+      if (dcLauncher) return;
+
+      dcLauncher = document.createElement("button");
+      dcLauncher.id = "dc-launcher";
+      dcLauncher.title = "Open Data Collector";
+      dcLauncher.innerHTML = "📊";
+      Object.assign(dcLauncher.style, {
+        position: "fixed",
+        bottom: "80px",
+        right: "20px",
+        zIndex: "2147483646",
+        background: "#1e1e2f",
+        border: "none",
+        color: "#7dcfff",
+        borderRadius: "50%",
+        width: "44px",
+        height: "44px",
+        fontSize: "20px",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+        transition: "background 0.15s",
+        padding: "0",
+      });
+
+      dcLauncher.addEventListener("mouseover", () => {
+        dcLauncher.style.background = "#2a2a3d";
+      });
+      dcLauncher.addEventListener("mouseout", () => {
+        dcLauncher.style.background = "#1e1e2f";
+      });
+
+      dcLauncher.addEventListener("click", () => {
+        if (!dataCollectorPanel) createDataCollectorPanel();
+        dataCollectorPanel.style.display = "block";
+      });
+
+      document.body.appendChild(dcLauncher);
+    }
+
+    function removeDataCollectorLauncher() {
+      if (dcLauncher) {
+        dcLauncher.remove();
+        dcLauncher = null;
+      }
+    }
+
+    function createDataCollectorPanel() {
+      if (dataCollectorPanel) return;
+
+      const panel = document.createElement("div");
+      panel.id = "dc-panel";
+      Object.assign(panel.style, {
+        position: "fixed",
+        top: dataCollectorPanelState.top + "px",
+        left: dataCollectorPanelState.left + "px",
+        width: "480px",
+        background: "#12121f",
+        color: "#dde0f0",
+        border: "1px solid #252540",
+        padding: "0",
+        borderRadius: "10px",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.75)",
+        fontFamily: "'Segoe UI', system-ui, Arial, sans-serif",
+        zIndex: 999997,
+        display: "none",
+        maxHeight: "80vh",
+        overflowY: "auto",
+        fontSize: "13px",
+      });
+
+      panel.innerHTML = `
+        <div id="dc-header" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#0d1124;border-bottom:1px solid #252540;cursor:move;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:#fff;">
+            <span style="font-size:20px">📊</span>
+            <span>Data Collector</span>
+          </div>
+          <button id="dc-close" style="background:none;border:none;color:#666;font-size:19px;cursor:pointer;line-height:1;padding:0 2px;">✕</button>
+        </div>
+        <div id="dc-body" style="padding:11px 13px;display:flex;flex-direction:column;gap:9px;">
+          <div style="display:flex;gap:8px;flex-direction:column;">
+            <button id="dc-try-another" style="padding:7px 8px;border:1px solid #2e2e52;border-radius:6px;background:transparent;color:#b0b4d0;cursor:pointer;font-size:12px;font-weight:600;">Try another table</button>
+            <button id="dc-locate-next" style="padding:7px 8px;border:none;border-radius:6px;background:#1253aa;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">📍 Locate "Next" button</button>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button id="dc-csv" style="flex:1;padding:7px 8px;border:none;border-radius:6px;background:#1c6b27;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">📥 CSV</button>
+            <button id="dc-xlsx" style="flex:1;padding:7px 8px;border:none;border-radius:6px;background:#145520;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">📥 XLSX</button>
+            <button id="dc-copy" style="flex:1;padding:7px 8px;border:none;border-radius:6px;background:#094e44;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">📋 COPY</button>
+          </div>
+          <hr style="border:none;border-top:1px solid #1e1e36;margin:9px 0;">
+          <div style="background:#1e1600;border:1px solid #4a3800;border-radius:6px;padding:5px 10px;font-size:12px;color:#f0c040;display:flex;align-items:center;gap:6px;">⚠️ Table data will be shown here</div>
+          <button id="dc-crawl-btn" style="width:100%;padding:9px;border:none;border-radius:6px;background:#1253aa;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Start crawling</button>
+          <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#b0b4d0;cursor:pointer;">
+            <input type="checkbox" id="dc-infinite-scroll" style="width:14px;height:14px;accent-color:#1976d2;cursor:pointer;">
+            <span>Infinite scroll</span>
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div style="background:#0c0c1a;border:1px solid #252540;border-radius:6px;display:flex;align-items:center;padding:5px 9px;gap:6px;">
+              <label style="color:#666;font-size:11px;white-space:nowrap;">Min delay</label>
+              <input type="number" id="dc-min-delay" value="1" min="0" max="999" step="0.5" style="flex:1;min-width:0;background:transparent;border:none;color:#dde0f0;font-size:13px;text-align:center;outline:none;">
+              <span style="color:#555;font-size:11px;">sec</span>
+            </div>
+            <div style="background:#0c0c1a;border:1px solid #252540;border-radius:6px;display:flex;align-items:center;padding:5px 9px;gap:6px;">
+              <label style="color:#666;font-size:11px;white-space:nowrap;">Max delay</label>
+              <input type="number" id="dc-max-delay" value="20" min="0" max="999" step="0.5" style="flex:1;min-width:0;background:transparent;border:none;color:#dde0f0;font-size:13px;text-align:center;outline:none;">
+              <span style="color:#555;font-size:11px;">sec</span>
+            </div>
+          </div>
+          <div style="background:#0c1622;border:1px solid #1a3555;border-radius:6px;padding:6px 10px;font-size:12px;color:#7ab8ff;text-align:center;min-height:30px;" id="dc-info-banner">Pages: <span id="dc-pages">0</span> | Rows: <span id="dc-rows">0</span> | Time: <span id="dc-time">0s</span></div>
+          <hr style="border:none;border-top:1px solid #1e1e36;margin:9px 0;">
+          <div id="dc-preview" style="overflow:auto;max-height:210px;border:1px solid #252540;border-radius:6px;background:#090914;">
+            <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+              <thead id="dc-preview-head" style="background:#0d1124;color:#7ab8ff;position:sticky;top:0;"></thead>
+              <tbody id="dc-preview-body" style="color:#cdd0e8;"></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(panel);
+      dataCollectorPanel = panel;
+
+      // Draggable header
+      let dragging = false, dragOffX = 0, dragOffY = 0;
+      const header = panel.querySelector("#dc-header");
+
+      header.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        const rect = panel.getBoundingClientRect();
+        dragOffX = e.clientX - rect.left;
+        dragOffY = e.clientY - rect.top;
+      });
+
+      document.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const left = Math.max(6, e.clientX - dragOffX);
+        const top = Math.max(6, e.clientY - dragOffY);
+        panel.style.left = left + "px";
+        panel.style.top = top + "px";
+      });
+
+      document.addEventListener("pointerup", () => {
+        if (!dragging) return;
+        dragging = false;
+        const rect = panel.getBoundingClientRect();
+        dataCollectorPanelState.left = Math.round(rect.left);
+        dataCollectorPanelState.top = Math.round(rect.top);
+        localStorage.setItem("dc_panel_state", JSON.stringify(dataCollectorPanelState));
+      });
+
+      // Close button
+      panel.querySelector("#dc-close").addEventListener("click", () => {
+        dataCollectorPanel.style.display = "none";
+      });
+
+      // Event handlers - basic setup
+      // Setup data collector functionality
+      setupDataCollectorFunctionality();
+
+      function setupDataCollectorFunctionality() {
+        const state = {
+          tables: [],
+          activeTableIdx: 0,
+          allRows: [],
+          headers: [],
+          pageCount: 0,
+          rowsLastPage: 0,
+          crawling: false,
+          crawlTimer: null,
+          startTime: null,
+          workingSeconds: 0,
+          ticker: null,
+          infiniteScroll: false,
+          minDelay: 1,
+          maxDelay: 20,
+          nextBtnSelector: null,
+          nextBtnText: '',
+        };
+
+        const previewHead = dataCollectorPanel.querySelector("#dc-preview-head");
+        const previewBody = dataCollectorPanel.querySelector("#dc-preview-body");
+        const pagesEl = dataCollectorPanel.querySelector("#dc-pages");
+        const rowsEl = dataCollectorPanel.querySelector("#dc-rows");
+        const timeEl = dataCollectorPanel.querySelector("#dc-time");
+        const cbInfiniteScroll = dataCollectorPanel.querySelector("#dc-infinite-scroll");
+        const minDelayInput = dataCollectorPanel.querySelector("#dc-min-delay");
+        const maxDelayInput = dataCollectorPanel.querySelector("#dc-max-delay");
+        const crawlBtn = dataCollectorPanel.querySelector("#dc-crawl-btn");
+        const locateNextBtn = dataCollectorPanel.querySelector("#dc-locate-next");
+
+        function detectTables() {
+          const found = [];
+          document.querySelectorAll('table').forEach((t, i) => {
+            if (t.querySelectorAll('tr').length > 0)
+              found.push({ type: 'table', el: t, label: 'Table ' + (i + 1) });
+          });
+          const candidates = document.querySelectorAll(
+            '[class*="row"],[class*="list"],[class*="grid"],[class*="item"],[class*="record"]'
+          );
+          const seen = new Set();
+          candidates.forEach(el => {
+            const parent = el.parentElement;
+            if (!parent || seen.has(parent)) return;
+            const siblings = Array.from(parent.children).filter(c => c.tagName === el.tagName);
+            if (siblings.length >= 3) {
+              seen.add(parent);
+              found.push({ type: 'div-list', el: parent, label: 'List (' + siblings.length + ' items)' });
+            }
+          });
+          return found;
+        }
+
+        function extractRows(tableObj) {
+          if (!tableObj) return { headers: [], rows: [] };
+          if (tableObj.type === 'table') {
+            const el = (tableObj.el && tableObj.el.isConnected) ? tableObj.el : document.querySelector('table');
+            if (!el) return { headers: [], rows: [] };
+            const trs = Array.from(el.querySelectorAll('tr'));
+            if (!trs.length) return { headers: [], rows: [] };
+            const hCells = trs[0].querySelectorAll('th, td');
+            const headers = Array.from(hCells).map((c, i) => c.innerText.trim() || ('Col ' + (i + 1)));
+            const rows = trs.slice(1).map(tr =>
+              Array.from(tr.querySelectorAll('td, th')).map(td => {
+                const a = td.querySelector('a');
+                return a ? a.href : td.innerText.trim();
+              })
+            ).filter(r => r.some(c => c !== ''));
+            return { headers, rows };
+          } else {
+            const el = (tableObj.el && tableObj.el.isConnected) ? tableObj.el : null;
+            if (!el) return { headers: [], rows: [] };
+            const children = Array.from(el.children);
+            if (!children.length) return { headers: [], rows: [] };
+            const headers = Array.from(
+              children[0].querySelectorAll('[data-label], [class]')
+            ).map((c, i) => c.getAttribute('data-label') || c.className.split(' ')[0] || ('Col ' + (i + 1)));
+            const rows = children.map(child =>
+              Array.from(child.querySelectorAll('[data-label], [class]')).map(c => c.innerText.trim())
+            );
+            return { headers, rows };
+          }
+        }
+
+        function buildSelector(el) {
+          if (el.id) return '#' + CSS.escape(el.id);
+          const aria = el.getAttribute('aria-label');
+          if (aria) return '[aria-label="' + aria + '"]';
+          const tag = el.tagName.toLowerCase();
+          if (el.className && typeof el.className === 'string') {
+            const cls = el.className.trim().split(/\s+/).filter(Boolean)
+              .map(c => '.' + CSS.escape(c)).join('');
+            if (cls) {
+              const sel = tag + cls;
+              try { if (document.querySelectorAll(sel).length === 1) return sel; } catch (_) {}
+            }
+          }
+          const parent = el.parentElement;
+          if (parent && parent !== document.body) {
+            const idx = Array.from(parent.children).indexOf(el) + 1;
+            return buildSelector(parent) + ' > ' + tag + ':nth-child(' + idx + ')';
+          }
+          return tag;
+        }
+
+        function findNextBtn() {
+          if (!state.nextBtnSelector) return null;
+          try { return document.querySelector(state.nextBtnSelector); } catch (_) { return null; }
+        }
+
+        function isNextBtnDisabled(btn) {
+          if (!btn) return true;
+          return btn.disabled
+            || btn.getAttribute('aria-disabled') === 'true'
+            || btn.classList.contains('disabled')
+            || btn.classList.contains('inactive')
+            || btn.classList.contains('is-disabled');
+        }
+
+        function esc(s) {
+          return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function toCSV(headers, rows) {
+          const escVal = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+          return [headers.map(escVal).join(',')].concat(rows.map(r => r.map(escVal).join(','))).join('\r\n');
+        }
+
+        function renderPreview(headers, rows) {
+          previewHead.innerHTML = '<tr>' + headers.map(h => '<th title="' + esc(h) + '">' + esc(h) + '</th>').join('') + '</tr>';
+          previewBody.innerHTML = rows.slice(0, 300).map(r =>
+            '<tr>' + headers.map((_, i) => '<td title="' + esc(r[i] || '') + '">' + esc(r[i] || '') + '</td>').join('') + '</tr>'
+          ).join('');
+        }
+
+        function updateStats() {
+          pagesEl.textContent = state.pageCount;
+          rowsEl.textContent = state.allRows.length;
+          timeEl.textContent = state.workingSeconds + 's';
+        }
+
+        function setInfoBanner(msg) {
+          const el = dataCollectorPanel.querySelector("#dc-info-banner");
+          if (el) el.textContent = msg;
+        }
+
+        function refreshTableData() {
+          state.tables = detectTables();
+          if (!state.tables.length) {
+            setInfoBanner('No tables found on this page.');
+            previewHead.innerHTML = '';
+            previewBody.innerHTML = '';
+            return;
+          }
+          state.activeTableIdx = Math.min(state.activeTableIdx, state.tables.length - 1);
+          const tbl = state.tables[state.activeTableIdx];
+          const { headers, rows } = extractRows(tbl);
+          state.headers = headers;
+          const displayRows = state.allRows.length > 0 ? state.allRows : rows;
+          state.rowsLastPage = rows.length;
+          renderPreview(headers, displayRows);
+          updateStats();
+        }
+
+        function collectPageAndScheduleNext(isFirst) {
+          if (!state.crawling) return;
+
+          state.tables = detectTables();
+          state.activeTableIdx = Math.min(state.activeTableIdx, Math.max(0, state.tables.length - 1));
+
+          const tbl = state.tables[state.activeTableIdx];
+          if (!tbl) {
+            if (isFirst) { stopCrawl('No table found on this page.'); return; }
+            state.crawlTimer = setTimeout(() => collectPageAndScheduleNext(false), 2000);
+            return;
+          }
+
+          const { headers, rows } = extractRows(tbl);
+          if (!rows.length) {
+            if (isFirst) { stopCrawl('No data rows found.'); return; }
+            state.crawlTimer = setTimeout(() => collectPageAndScheduleNext(false), 2000);
+            return;
+          }
+
+          state.headers = headers;
+
+          if (isFirst) {
+            state.allRows = rows.slice();
+            state.rowsLastPage = rows.length;
+            state.pageCount = 1;
+          } else {
+            const existingKeys = new Set(state.allRows.map(r => r.join('\x00')));
+            const newRows = rows.filter(r => !existingKeys.has(r.join('\x00')));
+            if (newRows.length === 0) {
+              stopCrawl('✓ Done! ' + state.allRows.length + ' rows from ' + state.pageCount + ' pages.');
+              showToast('Crawl complete!');
+              return;
+            }
+            state.allRows = state.allRows.concat(newRows);
+            state.rowsLastPage = newRows.length;
+            state.pageCount++;
+          }
+
+          renderPreview(headers, state.allRows);
+          updateStats();
+          scheduleNextPage();
+        }
+
+        function scheduleNextPage() {
+          if (!state.crawling) return;
+
+          const hasNextBtn = !!state.nextBtnSelector;
+          const canProceed = hasNextBtn || state.infiniteScroll;
+
+          if (!canProceed) {
+            stopCrawl('✓ Done! ' + state.allRows.length + ' rows collected. Set "Next" button for multi-page.');
+            return;
+          }
+
+          const delay = Math.floor((state.minDelay + Math.random() * (state.maxDelay - state.minDelay)) * 1000);
+          setInfoBanner('Next page in ' + Math.round(delay / 1000) + 's… (page ' + state.pageCount + ' done)');
+
+          state.crawlTimer = setTimeout(() => {
+            if (!state.crawling) return;
+
+            if (state.infiniteScroll) {
+              window.scrollTo(0, document.body.scrollHeight);
+              state.crawlTimer = setTimeout(() => collectPageAndScheduleNext(false), 2500);
+              return;
+            }
+
+            const btn = findNextBtn();
+            if (!btn) {
+              stopCrawl('Next button not found — crawl complete. ' + state.allRows.length + ' rows.');
+              return;
+            }
+            if (isNextBtnDisabled(btn)) {
+              stopCrawl('✓ Last page reached! ' + state.allRows.length + ' total rows from ' + state.pageCount + ' pages.');
+              showToast('All pages scraped!');
+              return;
+            }
+
+            try { btn.click(); } catch (e) { console.warn('[DC] Click failed:', e); }
+            waitForNewContent(3500);
+          }, delay);
+        }
+
+        function waitForNewContent(maxWait) {
+          const tbl = state.tables[state.activeTableIdx];
+          const fingerprint = tbl && tbl.el && tbl.el.isConnected ? tbl.el.innerText.slice(0, 500) : '';
+
+          const started = Date.now();
+          const check = () => {
+            if (!state.crawling) return;
+            const elapsed = Date.now() - started;
+
+            const tables = detectTables();
+            const curr = tables[Math.min(state.activeTableIdx, tables.length - 1)];
+            const currFP = curr && curr.el && curr.el.isConnected ? curr.el.innerText.slice(0, 500) : '';
+
+            if (currFP && currFP !== fingerprint) {
+              state.tables = tables;
+              collectPageAndScheduleNext(false);
+            } else if (elapsed >= maxWait) {
+              state.tables = tables;
+              collectPageAndScheduleNext(false);
+            } else {
+              state.crawlTimer = setTimeout(check, 300);
+            }
+          };
+          state.crawlTimer = setTimeout(check, 300);
+        }
+
+        function startCrawl() {
+          state.crawling = true;
+          state.allRows = [];
+          state.pageCount = 0;
+          state.workingSeconds = 0;
+          state.startTime = Date.now();
+
+          crawlBtn.textContent = 'Stop crawling';
+          crawlBtn.style.background = '#9c1c1c';
+
+          state.ticker = setInterval(() => {
+            state.workingSeconds = Math.round((Date.now() - state.startTime) / 1000);
+            updateStats();
+          }, 1000);
+
+          collectPageAndScheduleNext(true);
+        }
+
+        function stopCrawl(reason) {
+          state.crawling = false;
+          clearInterval(state.ticker);
+          clearTimeout(state.crawlTimer);
+          crawlBtn.textContent = 'Start crawling';
+          crawlBtn.style.background = '';
+          setInfoBanner(reason || 'Crawling stopped.');
+          renderPreview(state.headers, state.allRows);
+          updateStats();
+        }
+
+        function startNextPicker() {
+          showToast('Hover over the "Next" button and click it…');
+
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483645;cursor:crosshair;';
+          document.body.appendChild(overlay);
+
+          let hovered = null;
+
+          const onMove = e => {
+            if (hovered) hovered.style.outline = '';
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            if (el && el !== overlay) {
+              hovered = el;
+              hovered.style.outline = '3px solid #1976d2';
+            }
+          };
+
+          const onKey = e => { if (e.key === 'Escape') cancel(); };
+
+          const cancel = () => {
+            overlay.remove();
+            if (hovered) hovered.style.outline = '';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('keydown', onKey);
+          };
+
+          const onClick = e => {
+            e.preventDefault(); e.stopPropagation();
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            if (el && el !== overlay) {
+              if (hovered) hovered.style.outline = '';
+              state.nextBtnSelector = buildSelector(el);
+              state.nextBtnText = el.innerText.trim().slice(0, 30) || el.tagName;
+              showToast('"Next" captured: "' + state.nextBtnText + '" ✓');
+              setInfoBanner('Next button set → "' + state.nextBtnText + '". Now click Start crawling!');
+              locateNextBtn.textContent = '✅ "' + state.nextBtnText + '"';
+            }
+            cancel();
+          };
+
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('keydown', onKey);
+          overlay.addEventListener('click', onClick, true);
+        }
+
+        function getExportData() {
+          if (state.allRows.length > 0) return { headers: state.headers, rows: state.allRows };
+          const tbl = state.tables[state.activeTableIdx];
+          if (tbl) return extractRows(tbl);
+          return { headers: [], rows: [] };
+        }
+
+        function downloadBlob(content, filename, mime) {
+          const blob = new Blob([content], { type: mime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = filename; a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 6000);
+        }
+
+        // Event listeners
+        dataCollectorPanel.querySelector("#dc-try-another").addEventListener("click", () => {
+          if (!state.tables.length) { showToast('No tables detected.'); return; }
+          state.activeTableIdx = (state.activeTableIdx + 1) % state.tables.length;
+          state.allRows = []; state.pageCount = 0; state.rowsLastPage = 0;
+          refreshTableData();
+          showToast('Switched to: ' + (state.tables[state.activeTableIdx] ? state.tables[state.activeTableIdx].label : 'Table'));
+        });
+
+        locateNextBtn.addEventListener("click", startNextPicker);
+
+        dataCollectorPanel.querySelector("#dc-csv").addEventListener("click", () => {
+          const { headers, rows } = getExportData();
+          if (!rows.length) { showToast('No data to export.'); return; }
+          downloadBlob(toCSV(headers, rows), 'scraped_data_' + Date.now() + '.csv', 'text/csv;charset=utf-8;');
+          showToast('CSV exported — ' + rows.length + ' rows');
+        });
+
+        dataCollectorPanel.querySelector("#dc-xlsx").addEventListener("click", () => {
+          const { headers, rows } = getExportData();
+          if (!rows.length) { showToast('No data to export.'); return; }
+          try {
+            if (typeof XLSX === "undefined") {
+              showToast("Loading XLSX library...");
+              const script = document.createElement("script");
+              script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+              script.onload = () => {
+                const aoa = [headers].concat(rows.map(r => headers.map((_, i) => r[i] != null ? r[i] : '')));
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(aoa);
+                ws['!cols'] = headers.map((h, i) => ({ wch: Math.max(h.length, 8) }));
+                XLSX.utils.book_append_sheet(wb, ws, 'Scraped Data');
+                XLSX.writeFile(wb, 'scraped_data_' + Date.now() + '.xlsx');
+                showToast('XLSX exported — ' + rows.length + ' rows');
+              };
+              document.head.appendChild(script);
+            } else {
+              const aoa = [headers].concat(rows.map(r => headers.map((_, i) => r[i] != null ? r[i] : '')));
+              const wb = XLSX.utils.book_new();
+              const ws = XLSX.utils.aoa_to_sheet(aoa);
+              ws['!cols'] = headers.map((h, i) => ({ wch: Math.max(h.length, 8) }));
+              XLSX.utils.book_append_sheet(wb, ws, 'Scraped Data');
+              XLSX.writeFile(wb, 'scraped_data_' + Date.now() + '.xlsx');
+              showToast('XLSX exported — ' + rows.length + ' rows');
+            }
+          } catch (e) {
+            showToast('XLSX error: ' + e.message);
+            console.error('[DC XLSX]', e);
+          }
+        });
+
+        dataCollectorPanel.querySelector("#dc-copy").addEventListener("click", () => {
+          const { headers, rows } = getExportData();
+          if (!rows.length) { showToast('No data to copy.'); return; }
+          const txt = toCSV(headers, rows);
+          navigator.clipboard.writeText(txt).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = txt; document.body.appendChild(ta);
+            ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta);
+          });
+          showToast('Copied ' + rows.length + ' rows!');
+        });
+
+        crawlBtn.addEventListener("click", () => {
+          if (state.crawling) stopCrawl('Crawling stopped by user.');
+          else startCrawl();
+        });
+
+        cbInfiniteScroll.addEventListener("change", e => {
+          state.infiniteScroll = e.target.checked;
+        });
+
+        minDelayInput.addEventListener("input", e => {
+          state.minDelay = parseFloat(e.target.value) || 1;
+        });
+
+        maxDelayInput.addEventListener("input", e => {
+          state.maxDelay = parseFloat(e.target.value) || 20;
+        });
+
+        refreshTableData();
+      }
+
+      // Toast notification function
+      function showToast(msg) {
+        let toast = document.getElementById("dc-toast");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = "dc-toast";
+          Object.assign(toast.style, {
+            position: "fixed",
+            bottom: "28px",
+            right: "20px",
+            zIndex: "2147483648",
+            background: "#1253aa",
+            color: "#fff",
+            padding: "9px 18px",
+            borderRadius: "7px",
+            fontSize: "13px",
+            opacity: "0",
+            transition: "opacity 0.3s",
+            pointerEvents: "none",
+            fontFamily: "'Segoe UI', Arial, sans-serif",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+          });
+          document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        toast.style.opacity = "1";
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+          toast.style.opacity = "0";
+        }, 3200);
+      }
+    }
+
+    if (dataCollectorToggle) {
+      dataCollectorToggle.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          // Show launcher icon
+          if (!dcLauncher) createDataCollectorLauncher();
+          dataCollectorPanelState.visible = false;
+        } else {
+          // Hide launcher icon and panel
+          removeDataCollectorLauncher();
+          if (dataCollectorPanel) dataCollectorPanel.style.display = "none";
+          dataCollectorPanelState.visible = false;
+        }
+        localStorage.setItem("dc_panel_state", JSON.stringify(dataCollectorPanelState));
+      });
+
+      // Restore launcher on load
+      if (settings.enableDataCollector) {
+        dataCollectorToggle.checked = true;
+        setTimeout(() => {
+          if (!dcLauncher) createDataCollectorLauncher();
         }, 100);
       }
     }
