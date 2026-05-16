@@ -480,6 +480,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     autoRedirectDetailsToEdit: false,
     showCorrectionIcon: false,
     enableYearSelector: false,
+    enableAutoHolding: false,
     surveyValue: "আর এস",
     sourceValue: "সর্বশেষ জরিপ অনুযায়ী",
     defaultAddress: " জামসিং, থানাঃ সাভার, ঢাকা।",
@@ -2537,6 +2538,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       },
       { id: "showCorrectionIcon", label: "🔗 পেজে সংশোধন আইকন দেখান" },
       { id: "enableYearSelector", label: "📅 Year/Shal সিলেক্টর" },
+      { id: "enableAutoHolding", label: "🤖 Auto Holding entry Static" },
       {
         id: "autoCleanInputs",
         label:
@@ -3312,6 +3314,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             removeFloatingSetButton();
           }
         }
+        if (f.id === "enableAutoHolding") {
+          if (e.target.checked) {
+            if (!autoHoldingPanel) createAutoHoldingPanel();
+            autoHoldingPanel.style.display = "block";
+            autoHoldingPanelState.visible = true;
+          } else {
+            if (autoHoldingPanel) autoHoldingPanel.style.display = "none";
+            autoHoldingPanelState.visible = false;
+          }
+          localStorage.setItem("ah_panel_state", JSON.stringify(autoHoldingPanelState));
+        }
       });
     });
 
@@ -3630,6 +3643,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     let khatianPanel = null;
     let khatianPanelState = { visible: false, left: 16, top: 16 };
+
+    let autoHoldingPanel = null;
+    let autoHoldingPanelState = { visible: false, left: 16, top: 80 };
 
     // Load saved state
     try {
@@ -4017,6 +4033,337 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         setTimeout(() => {
           if (!khatianPanel) createKhatianPanel();
           khatianPanel.style.display = "block";
+        }, 100);
+      }
+    }
+
+    // ========== AUTO HOLDING PANEL SETUP ==========
+    const autoHoldingToggle = shadow.getElementById("s_enableAutoHolding");
+    
+    // Load saved Auto Holding state
+    try {
+      const saved = localStorage.getItem("ah_panel_state");
+      if (saved) autoHoldingPanelState = JSON.parse(saved);
+    } catch (e) {}
+
+    function createAutoHoldingPanel() {
+      if (autoHoldingPanel) return;
+
+      const panel = document.createElement("div");
+      panel.id = "ah-panel";
+      Object.assign(panel.style, {
+        position: "fixed",
+        top: autoHoldingPanelState.top + "px",
+        left: autoHoldingPanelState.left + "px",
+        width: "420px",
+        background: "#1e1e2f",
+        color: "#fff",
+        border: "1px solid #2e2e40",
+        padding: "12px",
+        borderRadius: "10px",
+        boxShadow: "0 8px 26px rgba(0,0,0,0.25)",
+        fontFamily: "Inter, Arial, sans-serif",
+        zIndex: 999998,
+        display: autoHoldingPanelState.visible ? "block" : "none",
+      });
+
+      panel.innerHTML = `
+        <div id="ah-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:move;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#7dcfff"></div>
+            <div style="font-weight:600;font-size:15px;color:#7dcfff">Auto Holding-Khatian</div>
+          </div>
+          <button style="background:transparent;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:6px;border-radius:6px" class="ah-close">✕</button>
+        </div>
+
+        <div style="font-size:13px;color:#bfc7d6;margin-bottom:6px">Paste pairs (one per line): <span style="font-size:11px;color:#9aa3b2">holding ⏤ khatian</span></div>
+        <textarea id="ah-pairs" placeholder="e.g. 3 4⏎4 5⏎5 6" style="width:100%;height:110px;margin-bottom:10px;padding:8px;border-radius:8px;border:none;background:#2a2a3d;color:#fff;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button id="ah-start" style="flex:1;padding:8px;border-radius:8px;border:none;background:#3a86ff;color:#fff;cursor:pointer;font-weight:600">Start</button>
+          <button id="ah-stop" style="width:84px;padding:8px;border-radius:8px;border:none;background:#ff595e;color:#fff;cursor:pointer;font-weight:600">Stop</button>
+          <button id="ah-clear" style="width:84px;padding:8px;border-radius:8px;border:none;background:#6c757d;color:#fff;cursor:pointer;font-weight:600">Clear</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <label style="font-size:12px;color:#bfc7d6">Delay (ms)</label>
+          <input id="ah-delay" type="number" value="1400" style="flex:1;padding:6px;border-radius:6px;border:none;background:#2a2a3d;color:#fff;text-align:right" />
+          <div id="ah-status" style="font-size:13px;color:#7dcfff;font-weight:600;min-width:70px;text-align:right">idle</div>
+        </div>
+
+        <div style="font-size:11px;color:#9aa3b2;margin-bottom:6px">Shortcut: Ctrl+Alt+V → paste clipboard into list & start</div>
+        <div style="font-size:11px;color:#9aa3b2;margin-bottom:8px">Inputs used: <code style="background:#2a2a3d;padding:2px 4px;border-radius:3px;font-size:10px">input[name="holding_no"]</code> & <code style="background:#2a2a3d;padding:2px 4px;border-radius:3px;font-size:10px">input[name="khatian_no"]</code>. Submit: <code style="background:#2a2a3d;padding:2px 4px;border-radius:3px;font-size:10px">button.btn.btn-primary</code></div>
+        
+        <div style="display:flex;gap:8px">
+          <button id="ah-reset" style="flex:1;padding:8px;border-radius:8px;border:none;background:#0b8f6b;color:#fff;cursor:pointer;font-weight:600">Reset Index</button>
+          <button id="ah-export" style="width:120px;padding:8px;border-radius:8px;border:none;background:#444;color:#fff;cursor:pointer;font-weight:600">Export CSV</button>
+        </div>
+      `;
+
+      document.body.appendChild(panel);
+      autoHoldingPanel = panel;
+
+      // Draggable header
+      let dragging = false, dragOffX = 0, dragOffY = 0;
+      const header = panel.querySelector("#ah-header");
+
+      header.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        const rect = panel.getBoundingClientRect();
+        dragOffX = e.clientX - rect.left;
+        dragOffY = e.clientY - rect.top;
+      });
+
+      document.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const left = Math.max(6, e.clientX - dragOffX);
+        const top = Math.max(6, e.clientY - dragOffY);
+        panel.style.left = left + "px";
+        panel.style.top = top + "px";
+      });
+
+      document.addEventListener("pointerup", () => {
+        if (!dragging) return;
+        dragging = false;
+        const rect = panel.getBoundingClientRect();
+        autoHoldingPanelState.left = Math.round(rect.left);
+        autoHoldingPanelState.top = Math.round(rect.top);
+        localStorage.setItem("ah_panel_state", JSON.stringify(autoHoldingPanelState));
+      });
+
+      // Close button
+      panel.querySelector(".ah-close").addEventListener("click", () => {
+        autoHoldingPanel.style.display = "none";
+        autoHoldingPanelState.visible = false;
+        localStorage.setItem("ah_panel_state", JSON.stringify(autoHoldingPanelState));
+        if (autoHoldingToggle) autoHoldingToggle.checked = false;
+      });
+
+      setupAutoHoldingPanel();
+    }
+
+    function setupAutoHoldingPanel() {
+      if (!autoHoldingPanel) return;
+
+      let queue = [], idx = 0, running = false, timerId = null;
+
+      const taPairs = autoHoldingPanel.querySelector("#ah-pairs");
+      const btnStart = autoHoldingPanel.querySelector("#ah-start");
+      const btnStop = autoHoldingPanel.querySelector("#ah-stop");
+      const btnClear = autoHoldingPanel.querySelector("#ah-clear");
+      const btnReset = autoHoldingPanel.querySelector("#ah-reset");
+      const btnExport = autoHoldingPanel.querySelector("#ah-export");
+      const inDelay = autoHoldingPanel.querySelector("#ah-delay");
+      const statusEl = autoHoldingPanel.querySelector("#ah-status");
+
+      // Load saved state
+      function loadAutoHoldingState() {
+        try {
+          const saved = localStorage.getItem("ah_automation_state");
+          if (saved) {
+            const state = JSON.parse(saved);
+            if (state.pairs) taPairs.value = state.pairs;
+            if (state.delay) inDelay.value = state.delay;
+            if (state.index) idx = state.index;
+          }
+        } catch (e) {}
+      }
+
+      function saveAutoHoldingState() {
+        try {
+          localStorage.setItem("ah_automation_state", JSON.stringify({
+            pairs: taPairs.value,
+            delay: Number(inDelay.value) || 1400,
+            index: idx
+          }));
+        } catch (e) {}
+      }
+
+      loadAutoHoldingState();
+
+      // Text Formatter (Extracts only first two numbers)
+      function formatPastedText(text) {
+        if (!text) return "";
+        return text.split(/\r?\n/).map(line => {
+          line = line.trim();
+          if (!line) return "";
+          const parts = line.split(/[,\t\s]+/).filter(Boolean);
+          if (parts.length >= 2) {
+            return `${parts[0]} ${parts[1]}`;
+          }
+          return line;
+        }).filter(Boolean).join("\n");
+      }
+
+      // Intercept normal Paste in textarea
+      taPairs.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData("text");
+        if (pastedText) {
+          const formattedText = formatPastedText(pastedText);
+          const start = taPairs.selectionStart;
+          const end = taPairs.selectionEnd;
+          const before = taPairs.value.substring(0, start);
+          const after = taPairs.value.substring(end);
+          taPairs.value = before + (before.length > 0 && !before.endsWith("\n") ? "\n" : "") + formattedText + after;
+          saveAutoHoldingState();
+        }
+      });
+
+      // Parse pairs internally
+      function parsePairs(text) {
+        if (!text) return [];
+        return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
+          const parts = line.split(/[,\t\s]+/).filter(Boolean);
+          return parts.length >= 2 ? [parts[0].toString(), parts[1].toString()] : null;
+        }).filter(Boolean);
+      }
+
+      function findInputs() {
+        return {
+          holdingInput: document.querySelector('input[name="holding_no"]'),
+          khatianInput: document.querySelector('input[name="khatian_no"]')
+        };
+      }
+
+      function findSubmitBtn() {
+        return document.querySelector("button.btn.btn-primary");
+      }
+
+      async function doNext() {
+        if (!running) return;
+        if (idx >= queue.length) {
+          stopProcessing();
+          statusEl.textContent = "finished";
+          return;
+        }
+
+        statusEl.textContent = `processing ${idx + 1}/${queue.length}`;
+        const [holdingVal, khatianVal] = queue[idx];
+        const { holdingInput, khatianInput } = findInputs();
+        const submitBtn = findSubmitBtn();
+
+        if (!holdingInput || !khatianInput || !submitBtn) {
+          statusEl.textContent = "inputs/button not found";
+          stopProcessing();
+          return;
+        }
+
+        try {
+          holdingInput.focus();
+          holdingInput.value = holdingVal;
+          holdingInput.dispatchEvent(new Event("input", { bubbles: true }));
+          holdingInput.dispatchEvent(new Event("change", { bubbles: true }));
+          khatianInput.focus();
+          khatianInput.value = khatianVal;
+          khatianInput.dispatchEvent(new Event("input", { bubbles: true }));
+          khatianInput.dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (e) {
+          console.error("fill error", e);
+        }
+
+        try {
+          if (!submitBtn.disabled) submitBtn.click();
+          else submitBtn.closest("form")?.requestSubmit?.();
+        } catch (e) {
+          console.error("submit error", e);
+        }
+
+        // Remove submitted line
+        const lines = taPairs.value.split(/\r?\n/);
+        lines.shift();
+        taPairs.value = lines.join("\n");
+
+        idx++;
+        saveAutoHoldingState();
+        const delay = Math.max(200, Number(inDelay.value) || 1400);
+        timerId = setTimeout(doNext, delay);
+      }
+
+      function startProcessing() {
+        if (running) return;
+        const list = parsePairs(taPairs.value);
+        if (!list.length) {
+          statusEl.textContent = "no pairs parsed";
+          return;
+        }
+        queue = list.slice();
+        idx = 0;
+        running = true;
+        statusEl.textContent = "running";
+        doNext();
+      }
+
+      function stopProcessing() {
+        running = false;
+        clearTimeout(timerId);
+        timerId = null;
+        statusEl.textContent = "stopped";
+      }
+
+      btnStart.addEventListener("click", startProcessing);
+      btnStop.addEventListener("click", stopProcessing);
+      btnClear.addEventListener("click", () => {
+        stopProcessing();
+        taPairs.value = "";
+        idx = 0;
+        saveAutoHoldingState();
+        statusEl.textContent = "cleared";
+      });
+      btnReset.addEventListener("click", () => {
+        idx = 0;
+        saveAutoHoldingState();
+        statusEl.textContent = "index reset";
+      });
+      btnExport.addEventListener("click", () => {
+        const csv = parsePairs(taPairs.value).map(p => `${p[0]},${p[1]}`).join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "holding_khatian_pairs.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      // Ctrl+Alt+V clipboard paste & start
+      window.addEventListener("keydown", async (e) => {
+        if (e.ctrlKey && e.altKey && e.code === "KeyV") {
+          try {
+            const txt = await navigator.clipboard.readText();
+            if (txt) {
+              taPairs.value = formatPastedText(txt);
+              saveAutoHoldingState();
+              btnStart.click();
+            }
+          } catch (err) {
+            statusEl.textContent = "clipboard denied";
+          }
+        }
+      });
+    }
+
+    if (autoHoldingToggle) {
+      autoHoldingToggle.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          if (!autoHoldingPanel) createAutoHoldingPanel();
+          autoHoldingPanel.style.display = "block";
+          autoHoldingPanelState.visible = true;
+        } else {
+          if (autoHoldingPanel) autoHoldingPanel.style.display = "none";
+          autoHoldingPanelState.visible = false;
+        }
+        localStorage.setItem("ah_panel_state", JSON.stringify(autoHoldingPanelState));
+      });
+
+      // Restore state on load
+      if (autoHoldingPanelState.visible) {
+        autoHoldingToggle.checked = true;
+        setTimeout(() => {
+          if (!autoHoldingPanel) createAutoHoldingPanel();
+          autoHoldingPanel.style.display = "block";
         }, 100);
       }
     }
