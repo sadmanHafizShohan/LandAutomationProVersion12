@@ -178,18 +178,31 @@ const map =[
   let runSuccessCount = 0;
   let runFailCount = 0;
 
-  for (; aep_currentIndex < aep_allLines.length; aep_currentIndex++) {
-    if (aep_isPaused) return;
+  // ========== RETRY CONFIGURATION ==========
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000; // 2 seconds between retries
 
-    const rawRowText = aep_allLines[aep_currentIndex];
-    const [h, k, c] = rawRowText.split(",");
+  // Retry helper function
+  async function processLineWithRetry(lineData, retryCount = 0) {
+    try {
+      return await processLineEntry(lineData, retryCount);
+    } catch (err) {
+      console.error("[AEP] Error processing line:", err);
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[AEP] Retry attempt ${retryCount + 1}/${MAX_RETRIES} for: ${lineData.h}-${lineData.k}`);
+        await new Promise((r) => setTimeout(r, RETRY_DELAY));
+        return processLineWithRetry(lineData, retryCount + 1);
+      } else {
+        console.log(`[AEP] All retries exhausted for: ${lineData.h}-${lineData.k}`);
+        return false;
+      }
+    }
+  }
 
-    console.log("[AEP] Processing row", aep_currentIndex + 1, ":", {
-      holding: h?.trim(),
-      khatian: k?.trim(),
-      comment: c?.trim(),
-    });
-
+  // Main process line function
+  async function processLineEntry(lineData, retryCount = 0) {
+    const { rawRowText, h, k, c } = lineData;
+    
     const hInput = document.querySelector('input[name="holding_no"]');
     const kInput = document.querySelector('input[name="khatian_no"]');
     const dropdown = document.querySelector(
@@ -208,20 +221,7 @@ const map =[
     // If comment key not found in map, mark as failed (missing data)
     if (!val) {
       console.log("[AEP] ⚠️ Comment key not found in map:", c?.trim());
-      runFailCount++;
-      aep_failedRows.push(rawRowText);
-      chrome.runtime.sendMessage({
-        type: "stats",
-        sCount: runSuccessCount,
-        fCount: runFailCount,
-        newFailedRow: rawRowText,
-      });
-      chrome.storage.session.set({
-        aep_sCount: runSuccessCount,
-        aep_fCount: runFailCount,
-        aep_failedRows: aep_failedRows,
-      });
-      continue; // Skip this row, move to next
+      return false; // Failed, don't retry for missing map data
     }
     
     setDropdown(dropdown, val);
@@ -271,13 +271,41 @@ const map =[
         }, 200);
       });
     } else {
-      console.log("[SCP Auto] Submit button পাওয়া যায় নাই!");
+      console.log("[AEP] Submit button পাওয়া যায় নাই!");
       isSuccess = false;
+      
+      // Retry if submit button not found and retries available
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[AEP] Submit button not found, retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise((r) => setTimeout(r, RETRY_DELAY));
+        return processLineEntry(lineData, retryCount + 1);
+      }
+      
       await new Promise((r) => setTimeout(r, aep_delayTime));
     }
 
+    return isSuccess;
+  }
+
+  for (; aep_currentIndex < aep_allLines.length; aep_currentIndex++) {
+    if (aep_isPaused) return;
+
+    const rawRowText = aep_allLines[aep_currentIndex];
+    const [h, k, c] = rawRowText.split(",");
+
+    console.log("[AEP] Processing row", aep_currentIndex + 1, ":", {
+      holding: h?.trim(),
+      khatian: k?.trim(),
+      comment: c?.trim(),
+    });
+
+    // Process with retry logic
+    const lineData = { rawRowText, h, k, c };
+    const isSuccess = await processLineWithRetry(lineData);
+
     if (isSuccess) {
       runSuccessCount++;
+      console.log("[AEP] ✅ Row", aep_currentIndex + 1, 'successful');
       chrome.runtime.sendMessage({
         type: "stats",
         sCount: runSuccessCount,
@@ -290,6 +318,7 @@ const map =[
       });
     } else {
       runFailCount++;
+      console.log("[AEP] ❌ Row", aep_currentIndex + 1, 'failed after retries');
       aep_failedRows.push(rawRowText); // Add to failed rows array
       chrome.runtime.sendMessage({
         type: "stats",
@@ -304,8 +333,6 @@ const map =[
         aep_failedRows: aep_failedRows,
       });
     }
-
-    chrome.runtime.sendMessage({ done: aep_currentIndex + 1 });
     aep_saveState();
   }
 
@@ -438,9 +465,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const defaultSettings = {
     altClick: false,
     escapeInc: false,
-    enterClick: false,
     shareSplit: false,
-    blockWindowClose: false,
     disableAllAlerts: false,
     autoClickDetails: false,
     darkMode: false,
@@ -1261,25 +1286,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   /* =========================
        INJECTED SCRIPT (For Alerts/Window)
     ==========================*/
-  if (settings.blockWindowClose) {
-    const script = document.createElement("script");
-    script.textContent = `
-            if (${settings.blockWindowClose}) {
-                window.close = () => console.log("Blocked close");
-            }
-        `;
-    (document.head || document.documentElement).appendChild(script);
-    script.remove();
-  }
-
-  // Auto Close Specific Tab based on setting
-  if (
-    settings.blockWindowClose &&
-    window.location.href.includes("holding/list/waiting")
-  ) {
-    window.close();
-    setTimeout(() => window.close(), 500);
-  }
 
   /* =========================
        DRAG UTILITY
@@ -1554,53 +1560,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   ); // capture phase
 
   /* =========================
-       ENTER FIX & OWNER SHARE
+       OWNER SHARE
     ==========================*/
-  function setupEnter() {
-    if (!settings.enterClick) return;
-    const input = document.querySelector("#verify-father-name");
-    const btn = document.querySelector("#entry-verify");
-    if (input && btn && !input.dataset.bound) {
-      input.removeAttribute("onkeydown");
-      input.removeAttribute("oninput");
-      input.dataset.bound = "1";
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          btn.click();
-          
-          // Mouse cursor id="owner-name" element এ নিয়ে যাও
-          const ownerNameEl = document.querySelector("#owner-name");
-          if (ownerNameEl) {
-            const rect = ownerNameEl.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            
-            // Mousemove event dispatch করো
-            const mouseEvent = new MouseEvent("mousemove", {
-              bubbles: true,
-              cancelable: true,
-              view: window,
-              clientX: centerX,
-              clientY: centerY
-            });
-            ownerNameEl.dispatchEvent(mouseEvent);
-            
-            // Mouseover event also dispatch করো
-            const mouseOverEvent = new MouseEvent("mouseover", {
-              bubbles: true,
-              cancelable: true,
-              view: window
-            });
-            ownerNameEl.dispatchEvent(mouseOverEvent);
-            
-            // Focus করো
-            ownerNameEl.focus();
-          }
-        }
-      });
-    }
-  }
 
   function toBn(v) {
     const m = {
@@ -2559,9 +2520,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       { id: "closeCurrentTab", label: "⌨️ Ctrl+Shift+X: Close This Tab" },
       { id: "arrowKeyTextReplace", label: "🔼🔽 Arrow Keys to auto Comment" },
       { id: "escapeInc", label: "Esc to Increment Holding Number and search" },
-      { id: "enterClick", label: "Enter to add মালিক" },
       { id: "shareSplit", label: "মালিকানা অংশ ভাগ" },
-      { id: "blockWindowClose", label: "ওপেক্ষামান ট্যাব ক্লোজ" },
       { id: "disableAllAlerts", label: "🛑 Disable All Alerts (Global)" },
       { id: "autoClickDetails", label: "Auto Click 1st বিস্তারিত Button" },
       {
@@ -4381,7 +4340,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
        OBSERVER & INIT
     ==========================*/
   const observer = new MutationObserver(() => {
-    setupEnter();
     injectUI();
     applySangpingAuto();
   });
@@ -4442,7 +4400,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }, 1000);
     }
 
-    setupEnter();
     injectUI();
     setTimeout(applySangpingAuto, 1000);
     setTimeout(runAutoClickDetails, 500);

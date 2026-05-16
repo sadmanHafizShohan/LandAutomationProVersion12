@@ -1,3 +1,4 @@
+// Disable all alert 
 (function() {
     'use strict';
     
@@ -88,345 +89,7 @@
     }, { passive: false });
 })();
 
-// =====================================================================
-// 🎯 KHATIAN & LOG SAVER - ALL-IN-ONE AUTOMATION (Tampermonkey Integration)
-// =====================================================================
-// (function() {
-//     'use strict';
-
-//     // Check if this is log site where we want to add buttons
-//     const isLogSite = window.location.href.includes('log.ldd4ig.org') && window.location.href.includes('DataEntry');
-//     console.log('[Khatian-Loop] URL:', window.location.href, '| isLogSite:', isLogSite);
-
-//     // --- Settings ---
-//     const firstButtonText = "সব তথ্য ঠিক আছে";
-//     const secondButtonText = "সংরক্ষণ করুন";
-//     const delayBetweenClicks = 50;
-//     const delayBetweenPhases = 500;
-//     const triggerButtonText = "Start";
-
-//     // Loop settings
-//     const waitForDataTime = 8000; // Time to wait for data in loop (8 seconds)
-//     const delayAfterSave = 3000; // Delay after save before moving to next number
-
-//      // --- ১. ইংরেজি-বাংলা কনভার্টার ফাংশন (আপনার অরিজিনাল) ---
-//     const enToBn = (str) => {
-//         const banglaDigits = {'0':'০', '1':'১', '2':'২', '3':'৩', '4':'৪', '5':'৫', '6':'৬', '7':'৭', '8':'৮', '9':'৯'};
-//         return str.toString().replace(/[0-9]/g, (digit) => banglaDigits[digit]);
-//     };
-
-//     const bnToEn = (str) => {
-//         const englishDigits = {'০':'0', '১':'1', '২':'2', '৩':'3', '৪':'4', '৫':'5', '৬':'6', '৭':'7', '৮':'8', '৯':'9'};
-//         return str.toString().replace(/[০-৯]/g, (digit) => englishDigits[digit]);
-//     };
-
-//     // --- 2. Khatian Increment Function ---
-//     function incrementKhatian() {
-//         console.log('[Increment] Starting increment process');
-//         const input = document.querySelector('input[name="khatian_no"]');
-        
-//         if (!input) {
-//             console.warn('[Increment] ❌ Khatian input field not found!');
-//             return;
-//         }
-
-//         console.log('[Increment] Found input, current value:', input.value);
-        
-//         let currentVal = bnToEn(input.value);
-//         console.log('[Increment] Converted to English:', currentVal);
-        
-//         let number = parseInt(currentVal) || 0;
-//         console.log('[Increment] Parsed number:', number);
-        
-//         number++;
-//         console.log('[Increment] Incremented to:', number);
-        
-//         input.value = enToBn(number.toString());
-//         console.log('[Increment] Set value to:', input.value);
-
-//         input.dispatchEvent(new Event('input', { bubbles: true }));
-//         input.dispatchEvent(new Event('change', { bubbles: true }));
-
-//         setTimeout(() => {
-//             // Try multiple selectors for the search button
-//             let searchBtn = null;
-            
-//             // Try 1: button.btn.btn-primary with text খুঁজুন
-//             const buttons = document.querySelectorAll('button');
-//             for (let btn of buttons) {
-//                 if (btn.textContent.trim().includes('খুঁজুন')) {
-//                     searchBtn = btn;
-//                     break;
-//                 }
-//             }
-            
-//             // Try 2: Look for any button with খুঁজুন text
-//             if (!searchBtn) {
-//                 const allElements = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
-//                 for (let el of allElements) {
-//                     if (el.textContent?.trim().includes('খুঁজুন') || el.value?.includes('খুঁজুন')) {
-//                         searchBtn = el;
-//                         break;
-//                     }
-//                 }
-//             }
-            
-//             if (searchBtn) {
-//                 console.log('[Increment] ✅ Found search button, clicking it');
-//                 searchBtn.click();
-//             } else {
-//                 console.warn('[Increment] ❌ Search button "খুঁজুন" not found');
-//             }
-//         }, 100);
-//     }
-
-//     // --- 3. Input Event Listener (Auto Bangla Conversion) ---
-//     document.addEventListener('input', function(e) {
-//         if (e.target && e.target.name === 'khatian_no') {
-//             e.target.value = enToBn(e.target.value);
-//         }
-//     }, true);
-
-//     // --- 4. Wait Function ---
-//     function wait(ms) {
-//         return new Promise(resolve => setTimeout(resolve, ms));
-//     }
-
-//     // ==========================================
-//     // Log Site Buttons & Automation Logic
-//     // ==========================================
-
-//     let triggerButton = null; // Single task button
-//     let loopButton = null;    // Loop button
-//     let isAutoRunning = false;
-
-//     function createButtons() {
-//         // Only create if we haven't created yet
-//         if (document.getElementById('auto-clicker-btn')) return;
-        
-//         // Add CSS styles
-//         const styleElement = document.createElement('style');
-//         styleElement.textContent = `
-//             /* Auto Clicker Button (upper) */
-//             #auto-clicker-btn {
-//                 position: fixed;
-//                 bottom: 75px;
-//                 right: 20px;
-//                 z-index: 9999;
-//                 padding: 10px 15px;
-//                 background-color: #007bff;
-//                 color: white;
-//                 border: none;
-//                 border-radius: 5px;
-//                 cursor: pointer;
-//                 font-size: 14px;
-//                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-//             }
-//             #auto-clicker-btn.in-progress { background-color: #ffc107; color: black; cursor: wait; }
-//             #auto-clicker-btn.completed { background-color: #28a745; }
-
-//             /* Master Loop Button (lower) */
-//             #master-loop-btn {
-//                 position: fixed;
-//                 bottom: 20px;
-//                 right: 20px;
-//                 z-index: 99999;
-//                 padding: 12px 20px;
-//                 background-color: #17a2b8;
-//                 color: white;
-//                 border: none;
-//                 border-radius: 5px;
-//                 cursor: pointer;
-//                 font-size: 15px;
-//                 font-weight: bold;
-//                 box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-//             }
-//             #master-loop-btn.running { background-color: #dc3545; }
-//         `;
-//         document.head.appendChild(styleElement);
-
-//         // Create auto clicker button
-//         triggerButton = document.createElement('button');
-//         triggerButton.id = 'auto-clicker-btn';
-//         triggerButton.innerText = triggerButtonText;
-//         document.body.appendChild(triggerButton);
-
-//         triggerButton.addEventListener('click', () => {
-//             if (triggerButton.classList.contains('completed')) {
-//                 resetButtonState();
-//             } else if (!triggerButton.disabled && !isAutoRunning) {
-//                 runSingleCycle();
-//             }
-//         });
-
-//         // Create master loop button
-//         loopButton = document.createElement('button');
-//         loopButton.id = 'master-loop-btn';
-//         loopButton.innerText = "▶ Auto Start";
-//         document.body.appendChild(loopButton);
-
-//         loopButton.addEventListener('click', () => {
-//             isAutoRunning = !isAutoRunning;
-//             if (isAutoRunning) {
-//                 loopButton.innerText = "⏹ স্টপ অটো লুপ (চলছে)";
-//                 loopButton.classList.add('running');
-//                 startMasterLoop(); // Start loop
-//             } else {
-//                 loopButton.innerText = "▶ Auto Start";
-//                 loopButton.classList.remove('running');
-//             }
-//         });
-
-//         console.log('[Khatian-Loop] ✅ Buttons created successfully');
-//     }
-
-//     // Wait for document to be ready before creating buttons
-//     if (document.readyState === 'loading') {
-//         document.addEventListener('DOMContentLoaded', () => {
-//             if (isLogSite) createButtons();
-//         });
-//     } else {
-//         // Document already loaded
-//         if (isLogSite) createButtons();
-//     }
-
-//     function resetButtonState() {
-//         if (!triggerButton) return;
-//         triggerButton.innerText = triggerButtonText;
-//         triggerButton.disabled = false;
-//         triggerButton.classList.remove('in-progress', 'completed');
-//     }
-
-//     // --- Core Clicking Task (used in both single cycle and loop) ---
-//     async function coreClickingTask() {
-//         // Step 0: Select All Header
-//         const expandHeader = document.querySelector('th.expand-cell-header[data-row-selection="true"]');
-//         if (expandHeader) { expandHeader.click(); await wait(delayBetweenPhases); }
-
-//         // Step 1: Click "সব তথ্য ঠিক আছে"
-//         const firstBtns = Array.from(document.querySelectorAll('button, a, input'))
-//                                .filter(el => el.innerText?.trim() === firstButtonText || el.value === firstButtonText);
-//         for (const btn of firstBtns) {
-//             try { btn.click(); if (delayBetweenClicks > 0) await wait(delayBetweenClicks); } catch (e) {}
-//         }
-//         await wait(delayBetweenPhases);
-
-//         // Step 2: Click "সংরক্ষণ করুন"
-//         const secondBtns = Array.from(document.querySelectorAll('button, a, input'))
-//                                 .filter(el => el.innerText?.trim() === secondButtonText || el.value === secondButtonText);
-//         for (const btn of secondBtns) {
-//             try { btn.click(); if (delayBetweenClicks > 0) await wait(delayBetweenClicks); } catch (e) {}
-//         }
-//     }
-
-//     // --- Single Automation Cycle ---
-//     async function runSingleCycle() {
-//         if (!triggerButton) return;
-//         triggerButton.innerText = "কাজ চলছে...";
-//         triggerButton.disabled = true;
-//         triggerButton.classList.add('in-progress');
-
-//         await coreClickingTask();
-
-//         triggerButton.innerText = "রিসেট (সম্পন্ন)";
-//         triggerButton.disabled = false;
-//         triggerButton.classList.remove('in-progress');
-//         triggerButton.classList.add('completed');
-//     }
-
-//     // --- Master Loop Automation Function ---
-//     async function startMasterLoop() {
-//         while (isAutoRunning) {
-//             // 1. Increment khatian and search
-//             incrementKhatian();
-//             await wait(1000);
-
-//             // 2. Wait for data to arrive
-//             let waitedTime = 0;
-//             let dataFound = false;
-//             while (waitedTime < waitForDataTime) {
-//                 if (!isAutoRunning) break;
-//                 const btns = Array.from(document.querySelectorAll('button, a, input'))
-//                                   .filter(el => el.innerText?.trim() === firstButtonText || el.value === firstButtonText);
-//                 if (btns.length > 0) {
-//                     dataFound = true;
-//                     break;
-//                 }
-//                 await wait(500);
-//                 waitedTime += 500;
-//             }
-
-//             if (!isAutoRunning) break;
-
-//             // 3. If data found, tick and save
-//             if (dataFound) {
-//                 await coreClickingTask();
-//                 await wait(delayAfterSave);
-//             } else {
-//                 await wait(1000);
-//             }
-//         }
-//     }
-
-//     // ==========================================
-//     // 5. Keyboard & Mouse Listeners
-//     // ==========================================
-
-//     window.addEventListener('keydown', function(e) {
-//         // ESC key - increment khatian
-//         if (e.key === "Escape") {
-//             e.preventDefault();
-//             incrementKhatian();
-//         }
-
-//         // Space key - auto search & click
-//         if (isLogSite && (e.key === ' ' || e.code === 'Space')) {
-//             e.preventDefault();
-
-//             if (triggerButton && triggerButton.classList.contains('in-progress')) return;
-//             if (isAutoRunning) return; // Don't trigger space if loop is running
-
-//             const searchBtn = document.querySelector('button[type="submit"], .btn-search, input[type="submit"]');
-//             if (searchBtn) searchBtn.click();
-
-//             if (triggerButton) {
-//                 triggerButton.innerText = "সার্চ হচ্ছে...";
-//                 triggerButton.disabled = true;
-//                 triggerButton.classList.add('in-progress');
-//             }
-
-//             const checkInterval = setInterval(() => {
-//                 const btns = Array.from(document.querySelectorAll('button, a, input'))
-//                                   .filter(el => el.innerText?.trim() === firstButtonText || el.value === firstButtonText);
-//                 if (btns.length > 0) {
-//                     clearInterval(checkInterval);
-//                     runSingleCycle();
-//                 }
-//             }, 500);
-
-//             setTimeout(() => {
-//                 clearInterval(checkInterval);
-//                 if (triggerButton && triggerButton.innerText === "সার্চ হচ্ছে...") resetButtonState();
-//             }, 10000);
-//         }
-//     });
-
-//     // Mouse button 3 (Back button) - increment khatian
-//     window.addEventListener('mousedown', function(e) {
-//         if (e.button === 3) {
-//             e.preventDefault();
-//             incrementKhatian();
-//         }
-//     });
-
-//     window.addEventListener('mouseup', function(e) {
-//         if (e.button === 3) {
-//             e.preventDefault();
-//         }
-//     });
-
-// })();
-
+// verify log user with permission auto green feature
 (function () {
   'use strict';
 
@@ -889,7 +552,6 @@
 })();
 
 // Auto Copy button Address & Land Percentage
-
 (function() {
     'use strict';
 
@@ -975,33 +637,45 @@
 
 })();
 
-
 // Enable Copy & Paste on Owner & Father Name
 (function() {
     'use strict';
 
-    // ইনপুট ফিল্ডগুলো খুঁজে বের করে কপি-পেস্ট এনাবল করার ফাংশন
-    function enableCopyPaste() {
+    // ইনপুট ফিল্ডগুলো খুঁজে বের করে কাস্টম ফিচার এনাবল করার ফাংশন
+    function enableCustomFeatures() {
         // একাধিক আইডি সিলেক্ট করার সঠিক পদ্ধতি
         const selectors = '#owner-name, #verify-father-name, [name="owner-name"], [name="verify-father-name"]';
         const inputFields = document.querySelectorAll(selectors);
 
         inputFields.forEach(field => {
             // যদি আগে থেকেই এনাবল না করা থাকে
-            if (!field.dataset.copyPasteEnabled) {
+            if (!field.dataset.featuresEnabled) {
 
-                // ১. Copy, Paste এবং Cut ইভেন্ট আনব্লক করা
-                ['copy', 'paste', 'cut'].forEach(eventType => {
+                // ১. Copy, Paste, Cut এবং Select ইভেন্ট আনব্লক করা
+                ['copy', 'paste', 'cut', 'select', 'selectstart'].forEach(eventType => {
                     field.addEventListener(eventType, function(e) {
                         e.stopImmediatePropagation(); // অন্য স্ক্রিপ্টের বাধা কাটানো
                         return true;
                     }, true);
                 });
 
-                // ২. কিবোর্ড শর্টকাট (Ctrl+C, Ctrl+V, Ctrl+X) এনাবল করা
+                // ২. কিবোর্ড শর্টকাট (Ctrl+A, C, V, X) এবং Enter বাটন এনাবল করা
                 field.addEventListener('keydown', function(e) {
-                    if ((e.ctrlKey || e.metaKey) && ['c', 'C', 'v', 'V', 'x', 'X'].includes(e.key)) {
+                    // Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A এর কাজ
+                    if ((e.ctrlKey || e.metaKey) && ['c', 'C', 'v', 'V', 'x', 'X', 'a', 'A'].includes(e.key)) {
                         e.stopImmediatePropagation();
+                    }
+
+                    // Enter বাটন প্রেস করলে এন্ট্রি বাটনে ক্লিক করানো
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); // ডিফল্ট রিলোড বা ফর্ম সাবমিট বন্ধ রাখা
+                        
+                        // বাটনের আইডি দিয়ে তাকে সিলেক্ট করে ক্লিক করা
+                        const entryButton = document.getElementById('entry-verify');
+                        if (entryButton) {
+                            entryButton.click();
+                            console.log("Enter key pressed: 'এন্ট্রি করুন' button clicked.");
+                        }
                     }
                 }, true);
 
@@ -1009,16 +683,18 @@
                 field.onpaste = null;
                 field.oncopy = null;
                 field.oncut = null;
+                field.onselect = null;
+                field.onselectstart = null;
 
                 // মার্ক করে রাখা যাতে বারবার একই কাজ না করে
-                field.dataset.copyPasteEnabled = 'true';
-                console.log("Copy & Paste enabled on: " + (field.id || field.name));
+                field.dataset.featuresEnabled = 'true';
+                console.log("Copy, Paste, Select All & Enter Key enabled on: " + (field.id || field.name));
             }
         });
     }
 
     // পেজ লোড হওয়ার পর এবং ডাইনামিক ফিল্ডের জন্য ১ সেকেন্ড পরপর চেক করা
-    setInterval(enableCopyPaste, 1000);
+    setInterval(enableCustomFeatures, 1000);
 })();
 
 // auto comment ভূমি জরিপের ধরন/মালিকানা সূত্র সংশোধন করা হল if not available
