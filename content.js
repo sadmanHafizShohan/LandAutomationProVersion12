@@ -481,6 +481,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     showCorrectionIcon: false,
     enableYearSelector: false,
     enableAutoHolding: false,
+    enableMultipleUrlOpen: false,
     surveyValue: "আর এস",
     sourceValue: "সর্বশেষ জরিপ অনুযায়ী",
     defaultAddress: " জামসিং, থানাঃ সাভার, ঢাকা।",
@@ -2538,7 +2539,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       },
       { id: "showCorrectionIcon", label: "🔗 পেজে সংশোধন আইকন দেখান" },
       { id: "enableYearSelector", label: "📅 Year/Shal সিলেক্টর" },
-      { id: "enableAutoHolding", label: "🤖 Auto Holding entry Static" },
+      { id: "enableAutoHolding", label: "🤖 Auto Holding entry" },
+      { id: "enableMultipleUrlOpen", label: "🔗 Multiple URL Open" },
       {
         id: "autoCleanInputs",
         label:
@@ -3325,6 +3327,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           }
           localStorage.setItem("ah_panel_state", JSON.stringify(autoHoldingPanelState));
         }
+        if (f.id === "enableMultipleUrlOpen") {
+          if (e.target.checked) {
+            if (!multipleUrlOpenPanel) createMultipleUrlOpenPanel();
+            multipleUrlOpenPanel.style.display = "block";
+            multipleUrlOpenPanelState.visible = true;
+          } else {
+            if (multipleUrlOpenPanel) multipleUrlOpenPanel.style.display = "none";
+            multipleUrlOpenPanelState.visible = false;
+          }
+          localStorage.setItem("muo_panel_state", JSON.stringify(multipleUrlOpenPanelState));
+        }
       });
     });
 
@@ -3646,6 +3659,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     let autoHoldingPanel = null;
     let autoHoldingPanelState = { visible: false, left: 16, top: 80 };
+
+    let multipleUrlOpenPanel = null;
+    let multipleUrlOpenPanelState = { visible: false, left: 16, top: 140 };
 
     // Load saved state
     try {
@@ -4364,6 +4380,425 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         setTimeout(() => {
           if (!autoHoldingPanel) createAutoHoldingPanel();
           autoHoldingPanel.style.display = "block";
+        }, 100);
+      }
+    }
+
+    // ========== MULTIPLE URL OPEN PANEL SETUP ==========
+    const multipleUrlOpenToggle = shadow.getElementById("s_enableMultipleUrlOpen");
+
+    // Load saved Multiple URL Open state
+    try {
+      const saved = localStorage.getItem("muo_panel_state");
+      if (saved) multipleUrlOpenPanelState = JSON.parse(saved);
+    } catch (e) {}
+
+    let muoLauncher = null;
+
+    function createMultipleUrlOpenLauncher() {
+      if (muoLauncher) return;
+
+      muoLauncher = document.createElement("button");
+      muoLauncher.id = "muo-launcher";
+      muoLauncher.title = "Open Multiple URLs";
+      muoLauncher.innerHTML = "🔗";
+      Object.assign(muoLauncher.style, {
+        position: "fixed",
+        bottom: "20px",
+        right: "20px",
+        zIndex: "2147483646",
+        background: "#1e1e2f",
+        border: "1px solid #555",
+        color: "#7dcfff",
+        borderRadius: "50%",
+        width: "44px",
+        height: "44px",
+        fontSize: "20px",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+        transition: "background 0.15s",
+        border: "none",
+        padding: "0",
+      });
+
+      muoLauncher.addEventListener("mouseover", () => {
+        muoLauncher.style.background = "#2a2a3d";
+      });
+      muoLauncher.addEventListener("mouseout", () => {
+        muoLauncher.style.background = "#1e1e2f";
+      });
+
+      muoLauncher.addEventListener("click", () => {
+        if (!multipleUrlOpenPanel) createMultipleUrlOpenPanel();
+        multipleUrlOpenPanel.style.display = "block";
+        const textarea = multipleUrlOpenPanel.querySelector("#muo-textarea");
+        if (textarea) textarea.focus();
+      });
+
+      document.body.appendChild(muoLauncher);
+    }
+
+    function removeMultipleUrlOpenLauncher() {
+      if (muoLauncher) {
+        muoLauncher.remove();
+        muoLauncher = null;
+      }
+    }
+
+    function createMultipleUrlOpenPanel() {
+      if (multipleUrlOpenPanel) return;
+
+      const panel = document.createElement("div");
+      panel.id = "muo-panel";
+      Object.assign(panel.style, {
+        position: "fixed",
+        top: multipleUrlOpenPanelState.top + "px",
+        left: multipleUrlOpenPanelState.left + "px",
+        width: "500px",
+        background: "#1e1e2f",
+        color: "#fff",
+        border: "1px solid #2e2e40",
+        padding: "12px",
+        borderRadius: "10px",
+        boxShadow: "0 8px 26px rgba(0,0,0,0.25)",
+        fontFamily: "Inter, Arial, sans-serif",
+        zIndex: 999997,
+        display: "none",
+        maxHeight: "80vh",
+        overflowY: "auto",
+      });
+
+      panel.innerHTML = `
+        <div id="muo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:move;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#7dcfff"></div>
+            <div style="font-weight:600;font-size:15px;color:#7dcfff">Multiple URL Opener</div>
+          </div>
+          <button style="background:transparent;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:6px;border-radius:6px" class="muo-close">✕</button>
+        </div>
+
+        <div style="font-size:13px;color:#bfc7d6;margin-bottom:6px">List of URLs / Text to extract URLs from:</div>
+        <textarea id="muo-textarea" placeholder="Paste URLs here, one per line..." style="width:100%;height:140px;margin-bottom:10px;padding:8px;border-radius:8px;border:none;background:#2a2a3d;color:#fff;font-size:13px;resize:vertical;box-sizing:border-box;font-family:monospace;line-height:1.5"></textarea>
+
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <button id="muo-open-btn" style="flex:1;min-width:120px;padding:8px;border-radius:8px;border:none;background:#3a86ff;color:#fff;cursor:pointer;font-weight:600">Open URLs</button>
+          <button id="muo-extract-btn" style="flex:1;min-width:140px;padding:8px;border-radius:8px;border:none;background:#7c5cef;color:#fff;cursor:pointer;font-weight:600">Extract URLs</button>
+        </div>
+
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;color:#bfc7d6;display:block;margin-bottom:6px">Tab Group Mode</label>
+          <select id="muo-tabgroup" style="width:100%;padding:6px;border-radius:6px;border:none;background:#2a2a3d;color:#fff;font-size:12px;box-sizing:border-box">
+            <option value="new_tab_group">New Tab Group</option>
+            <option value="current_window">Current Window</option>
+            <option value="new_window">New Window</option>
+          </select>
+        </div>
+
+        <div style="border-top:1px solid #3a3a3a;padding:10px 0;margin-bottom:10px">
+          <div style="font-size:12px;color:#7dcfff;font-weight:600;margin-bottom:8px">Options:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b0b0b0;cursor:pointer">
+              <input type="checkbox" id="muo-lazy" style="width:13px;height:13px;cursor:pointer">
+              <span>Lazy Load Tabs</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b0b0b0;cursor:pointer">
+              <input type="checkbox" id="muo-ignore-dup" style="width:13px;height:13px;cursor:pointer">
+              <span>Ignore Duplicates</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b0b0b0;cursor:pointer">
+              <input type="checkbox" id="muo-random" style="width:13px;height:13px;cursor:pointer">
+              <span>Random Order</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b0b0b0;cursor:pointer">
+              <input type="checkbox" id="muo-search" style="width:13px;height:13px;cursor:pointer">
+              <span>Non-URLs as Search</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b0b0b0;cursor:pointer">
+              <input type="checkbox" id="muo-reverse" style="width:13px;height:13px;cursor:pointer">
+              <span>Reverse Order</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b0b0b0;cursor:pointer">
+              <input type="checkbox" id="muo-preserve" style="width:13px;height:13px;cursor:pointer">
+              <span>Preserve Input</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="font-size:10px;color:#9aa3b2;line-height:1.6">
+          <div>⌨️ Shortcut: Alt+Shift+U to open/close</div>
+          <div>Keyboard: Escape to close</div>
+        </div>
+      `;
+
+      document.body.appendChild(panel);
+      multipleUrlOpenPanel = panel;
+
+      // Draggable header
+      let dragging = false, dragOffX = 0, dragOffY = 0;
+      const header = panel.querySelector("#muo-header");
+
+      header.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        const rect = panel.getBoundingClientRect();
+        dragOffX = e.clientX - rect.left;
+        dragOffY = e.clientY - rect.top;
+      });
+
+      document.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const left = Math.max(6, e.clientX - dragOffX);
+        const top = Math.max(6, e.clientY - dragOffY);
+        panel.style.left = left + "px";
+        panel.style.top = top + "px";
+      });
+
+      document.addEventListener("pointerup", () => {
+        if (!dragging) return;
+        dragging = false;
+        const rect = panel.getBoundingClientRect();
+        multipleUrlOpenPanelState.left = Math.round(rect.left);
+        multipleUrlOpenPanelState.top = Math.round(rect.top);
+        localStorage.setItem("muo_panel_state", JSON.stringify(multipleUrlOpenPanelState));
+      });
+
+      // Close button
+      panel.querySelector(".muo-close").addEventListener("click", () => {
+        multipleUrlOpenPanel.style.display = "none";
+      });
+
+      setupMultipleUrlOpenPanel();
+    }
+
+    function setupMultipleUrlOpenPanel() {
+      if (!multipleUrlOpenPanel) return;
+
+      const textarea = multipleUrlOpenPanel.querySelector("#muo-textarea");
+      const openBtn = multipleUrlOpenPanel.querySelector("#muo-open-btn");
+      const extractBtn = multipleUrlOpenPanel.querySelector("#muo-extract-btn");
+      const cbLazy = multipleUrlOpenPanel.querySelector("#muo-lazy");
+      const cbRandom = multipleUrlOpenPanel.querySelector("#muo-random");
+      const cbReverse = multipleUrlOpenPanel.querySelector("#muo-reverse");
+      const cbIgnoreDup = multipleUrlOpenPanel.querySelector("#muo-ignore-dup");
+      const cbSearch = multipleUrlOpenPanel.querySelector("#muo-search");
+      const cbPreserve = multipleUrlOpenPanel.querySelector("#muo-preserve");
+      const tabgroupSel = multipleUrlOpenPanel.querySelector("#muo-tabgroup");
+
+      // Load saved settings
+      function loadMuoSettings() {
+        try {
+          const saved = localStorage.getItem("muo_settings");
+          if (saved) {
+            const settings = JSON.parse(saved);
+            cbLazy.checked = settings.lazy || false;
+            cbRandom.checked = settings.random || false;
+            cbReverse.checked = settings.reverse || false;
+            cbIgnoreDup.checked = settings.ignoreDup || false;
+            cbSearch.checked = settings.search || false;
+            cbPreserve.checked = settings.preserve || false;
+            tabgroupSel.value = settings.tabgroup || "new_tab_group";
+          }
+        } catch (e) {}
+      }
+
+      function saveMuoSettings() {
+        try {
+          localStorage.setItem("muo_settings", JSON.stringify({
+            lazy: cbLazy.checked,
+            random: cbRandom.checked,
+            reverse: cbReverse.checked,
+            ignoreDup: cbIgnoreDup.checked,
+            search: cbSearch.checked,
+            preserve: cbPreserve.checked,
+            tabgroup: tabgroupSel.value
+          }));
+        } catch (e) {}
+      }
+
+      loadMuoSettings();
+
+      // Save on change
+      [cbLazy, cbRandom, cbReverse, cbIgnoreDup, cbSearch, cbPreserve, tabgroupSel].forEach(el => {
+        el.addEventListener("change", saveMuoSettings);
+      });
+
+      function showMuoToast(msg, dur = 2200) {
+        const existingToast = document.getElementById("muo-toast-panel");
+        if (existingToast) existingToast.remove();
+        const toast = document.createElement("div");
+        toast.id = "muo-toast-panel";
+        toast.textContent = msg;
+        Object.assign(toast.style, {
+          position: "fixed",
+          bottom: "30px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "#333",
+          color: "#eee",
+          padding: "8px 18px",
+          borderRadius: "4px",
+          fontSize: "13px",
+          zIndex: "2147483648",
+          pointerEvents: "none",
+        });
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), dur);
+      }
+
+      function isValidURL(str) {
+        try {
+          const url = new URL(str.trim());
+          return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'ftp:';
+        } catch { return false; }
+      }
+
+      function extractURLsFromText(text) {
+        const urlRegex = /https?:\/\/[^\s"'<>()[\]{}]+/gi;
+        return [...new Set(text.match(urlRegex) || [])];
+      }
+
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function getSearchURL(query) {
+        return `https://www.google.com/search?q=${encodeURIComponent(query.trim())}`;
+      }
+
+      // Mutually exclusive order
+      cbRandom.addEventListener("change", () => {
+        if (cbRandom.checked) cbReverse.checked = false;
+        saveMuoSettings();
+      });
+      cbReverse.addEventListener("change", () => {
+        if (cbReverse.checked) cbRandom.checked = false;
+        saveMuoSettings();
+      });
+
+      // Open URLs
+      openBtn.addEventListener("click", () => {
+        const raw = textarea.value;
+        if (!raw.trim()) {
+          showMuoToast("⚠️ No URLs entered.");
+          return;
+        }
+
+        let lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+        if (cbIgnoreDup.checked) {
+          lines = [...new Set(lines)];
+        }
+
+        let urls = lines.map(line => {
+          if (isValidURL(line)) return line;
+          if (cbSearch.checked) return getSearchURL(line);
+          return null;
+        }).filter(Boolean);
+
+        if (!urls.length) {
+          showMuoToast("⚠️ No valid URLs found.");
+          return;
+        }
+
+        if (cbRandom.checked) {
+          shuffle(urls);
+        } else if (cbReverse.checked) {
+          urls.reverse();
+        }
+
+        const mode = tabgroupSel.value;
+
+        if (mode === "new_window") {
+          const win = window.open("", "_blank");
+          if (!win) {
+            showMuoToast("⚠️ Popup blocked. Allow popups for this site.");
+            return;
+          }
+          urls.forEach((url, i) => {
+            if (i === 0) {
+              win.location.href = url;
+            } else {
+              win.open(url, "_blank");
+            }
+          });
+        } else {
+          let blocked = false;
+          urls.forEach(url => {
+            const w = window.open(url, "_blank");
+            if (!w) blocked = true;
+          });
+          if (blocked) {
+            showMuoToast("⚠️ Some tabs were blocked. Allow popups for this site.");
+            return;
+          }
+        }
+
+        showMuoToast(`✓ Opened ${urls.length} URL${urls.length > 1 ? 's' : ''}.`);
+
+        if (!cbPreserve.checked) {
+          textarea.value = "";
+        }
+      });
+
+      // Extract URLs
+      extractBtn.addEventListener("click", () => {
+        const text = textarea.value;
+        if (!text.trim()) {
+          showMuoToast("⚠️ Nothing to extract from.");
+          return;
+        }
+        const found = extractURLsFromText(text);
+        if (!found.length) {
+          showMuoToast("⚠️ No URLs found in text.");
+          return;
+        }
+        textarea.value = found.join("\n");
+        showMuoToast(`✓ Extracted ${found.length} URL${found.length > 1 ? 's' : ''}.`);
+      });
+
+      // Keyboard shortcuts
+      window.addEventListener("keydown", (e) => {
+        if (e.altKey && e.shiftKey && e.code === "KeyU") {
+          if (!multipleUrlOpenPanel) createMultipleUrlOpenPanel();
+          if (multipleUrlOpenPanel.style.display === "none") {
+            multipleUrlOpenPanel.style.display = "block";
+            textarea.focus();
+          } else {
+            multipleUrlOpenPanel.style.display = "none";
+          }
+        }
+        if (e.key === "Escape" && multipleUrlOpenPanel && multipleUrlOpenPanel.style.display !== "none") {
+          multipleUrlOpenPanel.style.display = "none";
+        }
+      });
+    }
+
+    if (multipleUrlOpenToggle) {
+      multipleUrlOpenToggle.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          // Show launcher icon
+          if (!muoLauncher) createMultipleUrlOpenLauncher();
+          multipleUrlOpenPanelState.visible = false;
+        } else {
+          // Hide launcher icon and panel
+          removeMultipleUrlOpenLauncher();
+          if (multipleUrlOpenPanel) multipleUrlOpenPanel.style.display = "none";
+          multipleUrlOpenPanelState.visible = false;
+        }
+        localStorage.setItem("muo_panel_state", JSON.stringify(multipleUrlOpenPanelState));
+      });
+
+      // Restore launcher on load
+      if (settings.enableMultipleUrlOpen) {
+        multipleUrlOpenToggle.checked = true;
+        setTimeout(() => {
+          if (!muoLauncher) createMultipleUrlOpenLauncher();
         }, 100);
       }
     }
